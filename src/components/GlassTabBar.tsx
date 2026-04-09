@@ -1,20 +1,24 @@
 import { useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
-import { Home, Search, PlusSquare, Film, User } from "lucide-react";
+import { Home, Search, PlusSquare, User, Compass } from "lucide-react";
+import { useNavigate, useLocation } from "react-router-dom";
 
 const tabs = [
-  { icon: Home, label: "Home" },
-  { icon: Search, label: "Search" },
-  { icon: PlusSquare, label: "Create" },
-  { icon: Film, label: "Reels" },
-  { icon: User, label: "Profile" },
+  { icon: Home, label: "Home", path: "/" },
+  { icon: Search, label: "Search", path: "/search" },
+  { icon: PlusSquare, label: "Create", path: "/create" },
+  { icon: Compass, label: "Explore", path: "/explore" },
+  { icon: User, label: "Profile", path: "/profile" },
 ];
 
 const GlassTabBar = () => {
-  const [active, setActive] = useState(0);
   const [collapsed, setCollapsed] = useState(false);
   const { scrollY } = useScroll();
-  
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const activeIndex = tabs.findIndex((t) => t.path === location.pathname) || 0;
+
   useMotionValueEvent(scrollY, "change", (latest) => {
     const prev = scrollY.getPrevious() ?? 0;
     setCollapsed(latest > 100 && latest > prev);
@@ -28,18 +32,12 @@ const GlassTabBar = () => {
     >
       <motion.nav
         className="liquid-glass-elevated flex items-center gap-1 px-2"
-        animate={collapsed ? { 
-          borderRadius: "2rem",
-          paddingLeft: "0.75rem",
-          paddingRight: "0.75rem",
-          paddingTop: "0.5rem",
-          paddingBottom: "0.5rem",
+        animate={collapsed ? {
+          borderRadius: "2rem", paddingLeft: "0.75rem", paddingRight: "0.75rem",
+          paddingTop: "0.5rem", paddingBottom: "0.5rem",
         } : {
-          borderRadius: "1.75rem",
-          paddingLeft: "0.75rem",
-          paddingRight: "0.75rem",
-          paddingTop: "0.625rem",
-          paddingBottom: "0.625rem",
+          borderRadius: "1.75rem", paddingLeft: "0.75rem", paddingRight: "0.75rem",
+          paddingTop: "0.625rem", paddingBottom: "0.625rem",
         }}
         layout
         transition={{ type: "spring", stiffness: 500, damping: 35 }}
@@ -47,19 +45,13 @@ const GlassTabBar = () => {
       >
         {tabs.map((tab, i) => {
           const Icon = tab.icon;
-          const isActive = i === active;
+          const isActive = i === activeIndex;
           return (
             <motion.button
               key={tab.label}
-              onClick={() => setActive(i)}
-              className={`depth-press relative flex items-center justify-center rounded-2xl transition-colors ${
-                isActive ? "text-primary" : "text-muted-foreground"
-              }`}
-              animate={collapsed ? { 
-                width: 40, height: 40 
-              } : { 
-                width: 64, height: 48
-              }}
+              onClick={() => navigate(tab.path)}
+              className={`depth-press relative flex items-center justify-center rounded-2xl transition-colors ${isActive ? "text-primary" : "text-muted-foreground"}`}
+              animate={collapsed ? { width: 40, height: 40 } : { width: 64, height: 48 }}
               layout
               transition={{ type: "spring", stiffness: 500, damping: 35 }}
             >
