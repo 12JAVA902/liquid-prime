@@ -1,15 +1,19 @@
-import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { useState } from "react";
-import { Camera, Heart } from "lucide-react";
+import { motion, useMotionValueEvent, useScroll } from "framer-motion";
+import { MessageCircle, Bell, Settings, Wallet, Film } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const TopNavBar = () => {
   const [collapsed, setCollapsed] = useState(false);
   const { scrollY } = useScroll();
+  const navigate = useNavigate();
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     const prev = scrollY.getPrevious() ?? 0;
     setCollapsed(latest > 60 && latest > prev);
   });
+
+  const iconBtn = "depth-press w-8 h-8 flex items-center justify-center rounded-full liquid-glass-subtle";
 
   return (
     <motion.header
@@ -20,40 +24,47 @@ const TopNavBar = () => {
       <motion.div
         className="liquid-glass-elevated mx-auto flex items-center justify-between"
         animate={collapsed ? {
-          marginLeft: "2rem",
-          marginRight: "2rem",
-          marginTop: "0.5rem",
-          borderRadius: "2rem",
-          paddingLeft: "1rem",
-          paddingRight: "1rem",
-          paddingTop: "0.5rem",
-          paddingBottom: "0.5rem",
+          marginLeft: "1.5rem", marginRight: "1.5rem", marginTop: "0.5rem",
+          borderRadius: "2rem", paddingLeft: "1rem", paddingRight: "1rem",
+          paddingTop: "0.5rem", paddingBottom: "0.5rem",
         } : {
-          marginLeft: "0rem",
-          marginRight: "0rem",
-          marginTop: "0rem",
-          borderRadius: "0rem",
-          paddingLeft: "1.25rem",
-          paddingRight: "1.25rem",
-          paddingTop: "0.75rem",
-          paddingBottom: "0.75rem",
+          marginLeft: "0rem", marginRight: "0rem", marginTop: "0rem",
+          borderRadius: "0rem", paddingLeft: "1rem", paddingRight: "1rem",
+          paddingTop: "0.625rem", paddingBottom: "0.625rem",
         }}
         layout
         transition={{ type: "spring", stiffness: 400, damping: 32 }}
       >
-        <motion.h1
-          className="text-headline text-foreground"
-          animate={collapsed ? { fontSize: "1.125rem" } : { fontSize: "1.5rem" }}
-          transition={{ type: "spring", stiffness: 400, damping: 30 }}
-        >
-          PRIME
-        </motion.h1>
-        <div className="flex items-center gap-3">
-          <button className="depth-press w-9 h-9 flex items-center justify-center rounded-full liquid-glass-subtle">
-            <Heart className="w-5 h-5 text-foreground" strokeWidth={1.5} />
+        {/* Logo + Name */}
+        <div className="flex items-center gap-2">
+          <div className="w-7 h-7 rounded-lg liquid-glass flex items-center justify-center">
+            <span className="text-sm font-bold text-primary relative z-10">P</span>
+          </div>
+          <motion.h1
+            className="text-headline text-foreground"
+            animate={collapsed ? { fontSize: "0.95rem" } : { fontSize: "1.15rem" }}
+            transition={{ type: "spring", stiffness: 400, damping: 30 }}
+          >
+            Primegram
+          </motion.h1>
+        </div>
+
+        {/* Icons */}
+        <div className="flex items-center gap-2">
+          <button className={iconBtn} onClick={() => navigate("/notifications")}>
+            <Bell className="w-4 h-4 text-foreground" strokeWidth={1.5} />
           </button>
-          <button className="depth-press w-9 h-9 flex items-center justify-center rounded-full liquid-glass-subtle">
-            <Camera className="w-5 h-5 text-foreground" strokeWidth={1.5} />
+          <button className={iconBtn} onClick={() => navigate("/reels")}>
+            <Film className="w-4 h-4 text-foreground" strokeWidth={1.5} />
+          </button>
+          <button className={iconBtn} onClick={() => navigate("/messages")}>
+            <MessageCircle className="w-4 h-4 text-foreground" strokeWidth={1.5} />
+          </button>
+          <button className={iconBtn} onClick={() => navigate("/wallet")}>
+            <Wallet className="w-4 h-4 text-foreground" strokeWidth={1.5} />
+          </button>
+          <button className={iconBtn} onClick={() => navigate("/settings")}>
+            <Settings className="w-4 h-4 text-foreground" strokeWidth={1.5} />
           </button>
         </div>
       </motion.div>
