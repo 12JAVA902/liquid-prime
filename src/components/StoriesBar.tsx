@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface StoryBubbleProps {
   name: string;
@@ -28,24 +29,23 @@ const StoryBubble = ({ name, initial, gradient, hasNew = true, index }: StoryBub
   </motion.button>
 );
 
-const stories = [
-  { name: "Your Story", initial: "+", gradient: "linear-gradient(135deg, hsl(210, 100%, 60%), hsl(260, 80%, 60%))", hasNew: false },
-  { name: "alex.jpg", initial: "A", gradient: "linear-gradient(135deg, hsl(350, 80%, 58%), hsl(30, 90%, 55%))" },
-  { name: "maya_k", initial: "M", gradient: "linear-gradient(135deg, hsl(170, 70%, 45%), hsl(210, 100%, 60%))" },
-  { name: "jordan", initial: "J", gradient: "linear-gradient(135deg, hsl(280, 70%, 55%), hsl(350, 80%, 58%))" },
-  { name: "sam.w", initial: "S", gradient: "linear-gradient(135deg, hsl(40, 90%, 55%), hsl(350, 80%, 58%))" },
-  { name: "nova_art", initial: "N", gradient: "linear-gradient(135deg, hsl(210, 100%, 60%), hsl(170, 70%, 45%))" },
-  { name: "kai.dev", initial: "K", gradient: "linear-gradient(135deg, hsl(260, 80%, 60%), hsl(210, 100%, 60%))" },
-];
+const StoriesBar = () => {
+  const { user } = useAuth();
+  const displayName = user?.user_metadata?.full_name || "You";
 
-const StoriesBar = () => (
-  <div className="overflow-x-auto scrollbar-none py-3 px-4">
-    <div className="flex gap-3">
-      {stories.map((story, i) => (
-        <StoryBubble key={story.name} {...story} index={i} />
-      ))}
+  const stories = [
+    { name: "Your Story", initial: "+", gradient: "linear-gradient(135deg, hsl(210, 100%, 60%), hsl(260, 80%, 60%))", hasNew: false },
+  ];
+
+  return (
+    <div className="overflow-x-auto scrollbar-none py-3 px-4">
+      <div className="flex gap-3">
+        {stories.map((story, i) => (
+          <StoryBubble key={story.name} {...story} index={i} />
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 export default StoriesBar;
