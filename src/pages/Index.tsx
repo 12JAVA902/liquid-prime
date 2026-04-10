@@ -1,22 +1,7 @@
 import TopNavBar from "@/components/TopNavBar";
 import GlassTabBar from "@/components/GlassTabBar";
 import StoriesBar from "@/components/StoriesBar";
-import FeedPost from "@/components/FeedPost";
 import FloatingActions from "@/components/FloatingActions";
-
-import feed1 from "@/assets/feed-1.jpg";
-import feed2 from "@/assets/feed-2.jpg";
-import feed3 from "@/assets/feed-3.jpg";
-import feed4 from "@/assets/feed-4.jpg";
-import feed5 from "@/assets/feed-5.jpg";
-
-const posts = [
-  { image: feed1, username: "oceandreamer", avatar: "🌊", caption: "Paradise found. This is where the sky meets the sea ✨", likes: 12847, comments: 342, timeAgo: "2h ago" },
-  { image: feed2, username: "arch.studio", avatar: "🏛", caption: "Golden hour hitting different on this build 🌅", likes: 8923, comments: 156, timeAgo: "4h ago" },
-  { image: feed3, username: "neon.nights", avatar: "🌃", caption: "Lost in the rain-soaked streets of Tokyo 🇯🇵", likes: 24561, comments: 891, timeAgo: "6h ago" },
-  { image: feed4, username: "arctic.lens", avatar: "🌌", caption: "Nature's light show never disappoints 💚", likes: 31204, comments: 1203, timeAgo: "8h ago" },
-  { image: feed5, username: "auto.elite", avatar: "🏎", caption: "Details make the difference. Every drop tells a story 💧", likes: 18756, comments: 567, timeAgo: "12h ago" },
-];
 
 const Index = () => {
   return (
@@ -33,9 +18,13 @@ const Index = () => {
           <StoriesBar />
         </div>
         <div className="px-4">
-          {posts.map((post, i) => (
-            <FeedPost key={post.username} {...post} index={i} />
-          ))}
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-16 h-16 rounded-3xl liquid-glass flex items-center justify-center mb-4">
+              <span className="text-2xl relative z-10">📷</span>
+            </div>
+            <p className="text-foreground font-semibold mb-1">Welcome to Primegram</p>
+            <p className="text-sm text-muted-foreground">No posts yet. Follow people or create your first post!</p>
+          </div>
         </div>
       </main>
 

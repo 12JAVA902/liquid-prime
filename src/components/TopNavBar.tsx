@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
-import { MessageCircle, Bell, Settings, Wallet, Film } from "lucide-react";
+import { MessageCircle, Film, Settings, Wallet, Bell } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const TopNavBar = () => {
@@ -35,7 +35,6 @@ const TopNavBar = () => {
         layout
         transition={{ type: "spring", stiffness: 400, damping: 32 }}
       >
-        {/* Logo + Name */}
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg liquid-glass flex items-center justify-center">
             <span className="text-sm font-bold text-primary relative z-10">P</span>
@@ -49,13 +48,12 @@ const TopNavBar = () => {
           </motion.h1>
         </div>
 
-        {/* Icons */}
         <div className="flex items-center gap-2">
-          <button className={iconBtn} onClick={() => navigate("/notifications")}>
-            <Bell className="w-4 h-4 text-foreground" strokeWidth={1.5} />
-          </button>
           <button className={iconBtn} onClick={() => navigate("/reels")}>
             <Film className="w-4 h-4 text-foreground" strokeWidth={1.5} />
+          </button>
+          <button className={iconBtn} onClick={() => navigate("/notifications")}>
+            <Bell className="w-4 h-4 text-foreground" strokeWidth={1.5} />
           </button>
           <button className={iconBtn} onClick={() => navigate("/messages")}>
             <MessageCircle className="w-4 h-4 text-foreground" strokeWidth={1.5} />
