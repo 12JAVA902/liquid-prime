@@ -35,6 +35,33 @@ export type Database = {
         }
         Relationships: []
       }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -65,6 +92,36 @@ export type Database = {
           updated_at?: string
           user_id?: string
           username?: string | null
+        }
+        Relationships: []
+      }
+      reels: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          likes_count: number
+          music_title: string | null
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          likes_count?: number
+          music_title?: string | null
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          likes_count?: number
+          music_title?: string | null
+          user_id?: string
+          video_url?: string | null
         }
         Relationships: []
       }
