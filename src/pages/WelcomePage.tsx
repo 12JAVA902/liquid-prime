@@ -7,7 +7,6 @@ const WelcomePage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      {/* Ambient glows */}
       <div className="absolute top-1/4 left-1/4 w-96 h-96 rounded-full opacity-[0.06]" style={{ background: "radial-gradient(circle, hsl(210,100%,60%), transparent)" }} />
       <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, hsl(280,70%,55%), transparent)" }} />
       <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full opacity-[0.03]" style={{ background: "radial-gradient(circle, hsl(350,80%,58%), transparent)" }} />
@@ -18,7 +17,6 @@ const WelcomePage = () => {
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         className="text-center max-w-sm"
       >
-        {/* Logo */}
         <motion.div
           initial={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
@@ -41,15 +39,25 @@ const WelcomePage = () => {
           initial={{ opacity: 0, y: 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.6, duration: 0.6 }}
-          className="text-muted-foreground text-sm mb-8 leading-relaxed"
+          className="text-muted-foreground text-sm mb-2 leading-relaxed"
         >
           Connect, create, and share moments with the world. Your social experience, reimagined in liquid glass.
         </motion.p>
 
         <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.8 }}
+          className="mb-8"
+        >
+          <p className="text-xs text-muted-foreground/60">Created by <span className="text-primary font-semibold">Java Prime</span></p>
+          <p className="text-xs text-muted-foreground/60">Sponsored by <span className="text-primary font-semibold">JP7 ULTRA</span></p>
+        </motion.div>
+
+        <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.8, duration: 0.6 }}
+          transition={{ delay: 1.0, duration: 0.6 }}
           className="space-y-3"
         >
           <button
@@ -71,7 +79,7 @@ const WelcomePage = () => {
         <motion.p
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
-          transition={{ delay: 1.2 }}
+          transition={{ delay: 1.4 }}
           className="text-caption text-muted-foreground mt-6"
         >
           By continuing, you agree to our Terms & Privacy Policy

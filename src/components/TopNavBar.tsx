@@ -35,20 +35,26 @@ const TopNavBar = () => {
         layout
         transition={{ type: "spring", stiffness: 400, damping: 32 }}
       >
-        <div className="flex items-center gap-2">
+        <motion.div
+          className="flex items-center gap-2"
+          animate={collapsed ? { justifyContent: "center", flex: 1 } : { justifyContent: "flex-start", flex: 0 }}
+        >
           <div className="w-7 h-7 rounded-lg liquid-glass flex items-center justify-center">
             <span className="text-sm font-bold text-primary relative z-10">P</span>
           </div>
           <motion.h1
             className="text-headline text-foreground"
-            animate={collapsed ? { fontSize: "0.95rem" } : { fontSize: "1.15rem" }}
+            animate={collapsed ? { fontSize: "0rem", width: 0, opacity: 0 } : { fontSize: "1.15rem", width: "auto", opacity: 1 }}
             transition={{ type: "spring", stiffness: 400, damping: 30 }}
           >
             Primegram
           </motion.h1>
-        </div>
+        </motion.div>
 
-        <div className="flex items-center gap-2">
+        <motion.div
+          className="flex items-center gap-2"
+          animate={collapsed ? { opacity: 0, width: 0, overflow: "hidden" } : { opacity: 1, width: "auto" }}
+        >
           <button className={iconBtn} onClick={() => navigate("/reels")}>
             <Film className="w-4 h-4 text-foreground" strokeWidth={1.5} />
           </button>
@@ -64,7 +70,7 @@ const TopNavBar = () => {
           <button className={iconBtn} onClick={() => navigate("/settings")}>
             <Settings className="w-4 h-4 text-foreground" strokeWidth={1.5} />
           </button>
-        </div>
+        </motion.div>
       </motion.div>
     </motion.header>
   );

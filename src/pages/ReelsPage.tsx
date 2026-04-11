@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import GlassTabBar from "@/components/GlassTabBar";
 
 const ReelsPage = () => {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ const ReelsPage = () => {
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [reels, setReels] = useState<any[]>([]);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,15 +28,21 @@ const ReelsPage = () => {
   };
 
   const handleCreateReel = async () => {
-    if (!user) return;
+    if (!user || !videoFile) { toast.error("Select a video first"); return; }
     setUploading(true);
     try {
-      // Insert reel metadata (video storage would need a storage bucket)
+      const ext = videoFile.name.split(".").pop();
+      const path = `${user.id}/reel_${Date.now()}.${ext}`;
+      const { error: uploadErr } = await supabase.storage.from("media").upload(path, videoFile);
+      if (uploadErr) throw uploadErr;
+
+      const { data: { publicUrl } } = supabase.storage.from("media").getPublicUrl(path);
+
       const { error } = await supabase.from("reels").insert({
         user_id: user.id,
         caption: caption || null,
         music_title: musicTitle || null,
-        video_url: videoPreview || null,
+        video_url: publicUrl,
       });
       if (error) throw error;
       toast.success("Reel created!");
@@ -54,7 +62,7 @@ const ReelsPage = () => {
     <div className="min-h-screen bg-background">
       <div className="liquid-glass-elevated safe-area-top">
         <div className="flex items-center gap-3 px-5 py-4 relative z-10">
-          <button onClick={() => navigate(-1)} className="depth-press"><ArrowLeft className="w-5 h-5 text-foreground" /></button>
+          <button onClick={() => navigate("/")} className="depth-press"><ArrowLeft className="w-5 h-5 text-foreground" /></button>
           <span className="text-headline text-foreground text-base flex-1">Reels</span>
           <button onClick={() => setCreating(true)} className="depth-press w-8 h-8 rounded-full bg-primary flex items-center justify-center">
             <Plus className="w-4 h-4 text-primary-foreground" />
@@ -62,7 +70,6 @@ const ReelsPage = () => {
         </div>
       </div>
 
-      {/* Empty state */}
       <div className="flex flex-col items-center justify-center py-20 px-6 text-center">
         <div className="w-16 h-16 rounded-3xl liquid-glass flex items-center justify-center mb-4">
           <Film className="w-8 h-8 text-muted-foreground relative z-10" />
@@ -74,7 +81,6 @@ const ReelsPage = () => {
         </button>
       </div>
 
-      {/* Create Reel Modal */}
       <AnimatePresence>
         {creating && (
           <motion.div
@@ -91,7 +97,7 @@ const ReelsPage = () => {
                 <span className="text-headline text-foreground text-base flex-1">New Reel</span>
                 <button
                   onClick={handleCreateReel}
-                  disabled={uploading}
+                  disabled={uploading || !videoFile}
                   className="depth-press px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
                 >
                   {uploading ? "..." : "Post"}
@@ -100,7 +106,6 @@ const ReelsPage = () => {
             </div>
 
             <div className="flex-1 p-5 space-y-4 overflow-y-auto">
-              {/* Video Upload */}
               <div className="liquid-glass rounded-2xl p-6 relative z-10">
                 <input ref={fileRef} type="file" accept="video/*" className="hidden" onChange={handleFileSelect} />
                 {videoPreview ? (
@@ -119,12 +124,11 @@ const ReelsPage = () => {
                     className="depth-press w-full py-12 rounded-xl border-2 border-dashed border-border flex flex-col items-center gap-2"
                   >
                     <Upload className="w-8 h-8 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Tap to upload video</span>
+                    <span className="text-sm text-muted-foreground">Tap to upload video from device</span>
                   </button>
                 )}
               </div>
 
-              {/* Caption */}
               <div className="liquid-glass rounded-2xl p-4 relative z-10">
                 <label className="text-caption text-muted-foreground block mb-2">Caption</label>
                 <textarea
@@ -135,7 +139,6 @@ const ReelsPage = () => {
                 />
               </div>
 
-              {/* Music */}
               <div className="liquid-glass rounded-2xl p-4 relative z-10">
                 <label className="text-caption text-muted-foreground block mb-2">Music (optional)</label>
                 <input
@@ -149,6 +152,7 @@ const ReelsPage = () => {
           </motion.div>
         )}
       </AnimatePresence>
+      <GlassTabBar />
     </div>
   );
 };
