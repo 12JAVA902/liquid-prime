@@ -1,13 +1,13 @@
 import { useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
-import { Home, Search, PlusSquare, User, Compass } from "lucide-react";
+import { Home, Search, PlusSquare, User, Film } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
 const tabs = [
   { icon: Home, label: "Home", path: "/" },
   { icon: Search, label: "Search", path: "/search" },
   { icon: PlusSquare, label: "Create", path: "/create" },
-  { icon: Compass, label: "Explore", path: "/explore" },
+  { icon: Film, label: "Reels", path: "/reels" },
   { icon: User, label: "Profile", path: "/profile" },
 ];
 
@@ -17,7 +17,7 @@ const GlassTabBar = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const activeIndex = tabs.findIndex((t) => t.path === location.pathname) || 0;
+  const activeIndex = Math.max(0, tabs.findIndex((t) => t.path === location.pathname));
 
   useMotionValueEvent(scrollY, "change", (latest) => {
     const prev = scrollY.getPrevious() ?? 0;

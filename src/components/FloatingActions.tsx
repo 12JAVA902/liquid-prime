@@ -1,17 +1,26 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Layers, Music, ShoppingBag, Gamepad2, BookOpen, X } from "lucide-react";
+import { Sparkles, Layers, Music, Trophy, Gamepad2, BookOpen, X } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import PrimeMusicHub from "./PrimeMusicHub";
 
 const hubItems = [
   { icon: Music, label: "Music", color: "hsl(350, 80%, 58%)", id: "music" },
-  { icon: ShoppingBag, label: "Shop", color: "hsl(210, 100%, 60%)", id: "shop" },
+  { icon: Trophy, label: "Sports", color: "hsl(210, 100%, 60%)", id: "sports" },
   { icon: Gamepad2, label: "Games", color: "hsl(280, 70%, 55%)", id: "games" },
   { icon: BookOpen, label: "Stories", color: "hsl(170, 70%, 45%)", id: "stories" },
 ];
 
 const PrimeHubPanel = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const [musicOpen, setMusicOpen] = useState(false);
+  const navigate = useNavigate();
+
+  const handleClick = (id: string) => {
+    if (id === "music") setMusicOpen(true);
+    else if (id === "sports") { onClose(); navigate("/sports"); }
+    else if (id === "games") window.open("https://poki.com", "_blank");
+    else if (id === "stories") window.open("https://wattpad.com", "_blank");
+  };
 
   return (
     <>
@@ -40,7 +49,7 @@ const PrimeHubPanel = ({ open, onClose }: { open: boolean; onClose: () => void }
                   initial={{ opacity: 0, scale: 0.8 }}
                   animate={{ opacity: 1, scale: 1 }}
                   transition={{ delay: i * 0.05 }}
-                  onClick={() => item.id === "music" && setMusicOpen(true)}
+                  onClick={() => handleClick(item.id)}
                   className="depth-press liquid-glass rounded-2xl p-3 flex flex-col items-center gap-2 relative z-10"
                 >
                   <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ background: `${item.color}20` }}>
@@ -61,8 +70,6 @@ const PrimeHubPanel = ({ open, onClose }: { open: boolean; onClose: () => void }
 const FloatingActions = () => {
   const [aiOpen, setAiOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
-
-  // Lazy import AI chat
   const [PrimeAI, setPrimeAI] = useState<React.ComponentType<any> | null>(null);
 
   const openAI = async () => {
@@ -76,7 +83,6 @@ const FloatingActions = () => {
 
   return (
     <>
-      {/* FABs */}
       <div className="fixed right-4 bottom-24 z-[55] flex flex-col gap-3">
         <motion.button
           whileHover={{ scale: 1.05 }}
@@ -97,7 +103,6 @@ const FloatingActions = () => {
         </motion.button>
       </div>
 
-      {/* Panels */}
       <PrimeHubPanel open={hubOpen} onClose={() => setHubOpen(false)} />
       {PrimeAI && <PrimeAI open={aiOpen} onClose={() => setAiOpen(false)} />}
     </>
