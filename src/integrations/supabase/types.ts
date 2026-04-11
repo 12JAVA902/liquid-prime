@@ -62,6 +62,36 @@ export type Database = {
         }
         Relationships: []
       }
+      posts: {
+        Row: {
+          caption: string | null
+          created_at: string
+          id: string
+          likes_count: number
+          media_type: string | null
+          media_url: string | null
+          user_id: string
+        }
+        Insert: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          likes_count?: number
+          media_type?: string | null
+          media_url?: string | null
+          user_id: string
+        }
+        Update: {
+          caption?: string | null
+          created_at?: string
+          id?: string
+          likes_count?: number
+          media_type?: string | null
+          media_url?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           avatar_url: string | null
