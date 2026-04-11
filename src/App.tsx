@@ -15,6 +15,9 @@ import WalletPage from "./pages/WalletPage";
 import ReelsPage from "./pages/ReelsPage";
 import ProfilePage from "./pages/ProfilePage";
 import CallPage from "./pages/CallPage";
+import SearchPage from "./pages/SearchPage";
+import CreatePostPage from "./pages/CreatePostPage";
+import SportsPage from "./pages/SportsPage";
 
 const queryClient = new QueryClient();
 
@@ -43,6 +46,8 @@ const App = () => (
             <Route path="/welcome" element={<AuthRoute><WelcomePage /></AuthRoute>} />
             <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
             <Route path="/" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/search" element={<ProtectedRoute><SearchPage /></ProtectedRoute>} />
+            <Route path="/create" element={<ProtectedRoute><CreatePostPage /></ProtectedRoute>} />
             <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} />
             <Route path="/settings" element={<ProtectedRoute><SettingsPage /></ProtectedRoute>} />
             <Route path="/notifications" element={<ProtectedRoute><NotificationsPage /></ProtectedRoute>} />
@@ -50,9 +55,7 @@ const App = () => (
             <Route path="/reels" element={<ProtectedRoute><ReelsPage /></ProtectedRoute>} />
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/call/:userId" element={<ProtectedRoute><CallPage /></ProtectedRoute>} />
-            <Route path="/search" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/create" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-            <Route path="/explore" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+            <Route path="/sports" element={<ProtectedRoute><SportsPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
