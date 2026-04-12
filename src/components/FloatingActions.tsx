@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Layers, Music, Trophy, Gamepad2, BookOpen, X } from "lucide-react";
+import { Sparkles, Layers, Music, Trophy, Gamepad2, Film, X } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import PrimeMusicHub from "./PrimeMusicHub";
 
@@ -8,7 +8,7 @@ const hubItems = [
   { icon: Music, label: "Music", color: "hsl(350, 80%, 58%)", id: "music" },
   { icon: Trophy, label: "Sports", color: "hsl(210, 100%, 60%)", id: "sports" },
   { icon: Gamepad2, label: "Games", color: "hsl(280, 70%, 55%)", id: "games" },
-  { icon: BookOpen, label: "Stories", color: "hsl(170, 70%, 45%)", id: "stories" },
+  { icon: Film, label: "Movies", color: "hsl(40, 90%, 55%)", id: "movies" },
 ];
 
 const PrimeHubPanel = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
@@ -19,7 +19,7 @@ const PrimeHubPanel = ({ open, onClose }: { open: boolean; onClose: () => void }
     if (id === "music") setMusicOpen(true);
     else if (id === "sports") { onClose(); navigate("/sports"); }
     else if (id === "games") window.open("https://poki.com", "_blank");
-    else if (id === "stories") window.open("https://wattpad.com", "_blank");
+    else if (id === "movies") { onClose(); navigate("/movies"); }
   };
 
   return (

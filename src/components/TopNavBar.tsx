@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
-import { MessageCircle, Film, Settings, Wallet, Bell } from "lucide-react";
+import { MessageCircle, Settings, Wallet } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 const TopNavBar = () => {
@@ -55,12 +55,6 @@ const TopNavBar = () => {
           className="flex items-center gap-2"
           animate={collapsed ? { opacity: 0, width: 0, overflow: "hidden" } : { opacity: 1, width: "auto" }}
         >
-          <button className={iconBtn} onClick={() => navigate("/reels")}>
-            <Film className="w-4 h-4 text-foreground" strokeWidth={1.5} />
-          </button>
-          <button className={iconBtn} onClick={() => navigate("/notifications")}>
-            <Bell className="w-4 h-4 text-foreground" strokeWidth={1.5} />
-          </button>
           <button className={iconBtn} onClick={() => navigate("/messages")}>
             <MessageCircle className="w-4 h-4 text-foreground" strokeWidth={1.5} />
           </button>

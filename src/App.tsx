@@ -18,6 +18,7 @@ import CallPage from "./pages/CallPage";
 import SearchPage from "./pages/SearchPage";
 import CreatePostPage from "./pages/CreatePostPage";
 import SportsPage from "./pages/SportsPage";
+import MoviesPage from "./pages/MoviesPage";
 
 const queryClient = new QueryClient();
 
@@ -56,6 +57,7 @@ const App = () => (
             <Route path="/profile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
             <Route path="/call/:userId" element={<ProtectedRoute><CallPage /></ProtectedRoute>} />
             <Route path="/sports" element={<ProtectedRoute><SportsPage /></ProtectedRoute>} />
+            <Route path="/movies" element={<ProtectedRoute><MoviesPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
