@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import TopNavBar from "@/components/TopNavBar";
 import GlassTabBar from "@/components/GlassTabBar";
-import MoviesBar from "@/components/MoviesBar";
+import StoriesBar from "@/components/StoriesBar";
 import FloatingActions from "@/components/FloatingActions";
 import FeedPost from "@/components/FeedPost";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,28 +10,50 @@ const Index = () => {
   const [posts, setPosts] = useState<any[]>([]);
 
   useEffect(() => {
-    supabase.from("posts").select("*, profiles!posts_user_id_fkey(display_name, username, avatar_url)").order("created_at", { ascending: false }).limit(50).then(({ data }) => {
-      // If join fails, try without join
-      if (!data) {
-        supabase.from("posts").select("*").order("created_at", { ascending: false }).limit(50).then(({ data: d }) => setPosts(d || []));
+    const fetchPosts = async () => {
+      // Fetch posts (not stories) with profile info
+      const { data, error } = await supabase
+        .from("posts")
+        .select("*")
+        .neq("media_type", "story")
+        .order("created_at", { ascending: false })
+        .limit(50);
+      
+      if (data && data.length > 0) {
+        // Fetch profiles for these posts
+        const userIds = [...new Set(data.map(p => p.user_id))];
+        const { data: profiles } = await supabase
+          .from("profiles")
+          .select("user_id, display_name, username, avatar_url")
+          .in("user_id", userIds);
+        
+        const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
+        const enriched = data.map(post => ({
+          ...post,
+          profile: profileMap.get(post.user_id) || null,
+        }));
+        setPosts(enriched);
       } else {
-        setPosts(data || []);
+        setPosts([]);
       }
-    });
+    };
+    fetchPosts();
   }, []);
 
   return (
     <div className="min-h-screen bg-background relative">
+      {/* Liquid glass ambient background */}
       <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full opacity-[0.03]" style={{ background: "radial-gradient(circle, hsl(210, 100%, 60%), transparent)" }} />
-        <div className="absolute bottom-1/3 right-1/4 w-80 h-80 rounded-full opacity-[0.02]" style={{ background: "radial-gradient(circle, hsl(280, 70%, 55%), transparent)" }} />
+        <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, hsl(210, 100%, 60%), transparent)" }} />
+        <div className="absolute bottom-[-5%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-[0.03]" style={{ background: "radial-gradient(circle, hsl(280, 70%, 55%), transparent)" }} />
+        <div className="absolute top-[40%] left-[60%] w-[40vw] h-[40vw] rounded-full opacity-[0.02]" style={{ background: "radial-gradient(circle, hsl(350, 80%, 58%), transparent)" }} />
       </div>
 
       <TopNavBar />
 
       <main className="relative z-10 pt-14 pb-24">
         <div className="liquid-glass-subtle mx-4 rounded-2xl mt-2 mb-4">
-          <MoviesBar />
+          <StoriesBar />
         </div>
         <div className="px-4">
           {posts.length === 0 ? (
@@ -47,8 +69,9 @@ const Index = () => {
               <FeedPost
                 key={post.id}
                 image={post.media_url || ""}
-                username={(post.profiles as any)?.display_name || "User"}
-                avatar={((post.profiles as any)?.display_name || "U")[0].toUpperCase()}
+                mediaType={post.media_type || "image"}
+                username={post.profile?.display_name || "User"}
+                avatar={post.profile?.avatar_url || (post.profile?.display_name || "U")[0].toUpperCase()}
                 caption={post.caption || ""}
                 likes={post.likes_count || 0}
                 comments={0}
