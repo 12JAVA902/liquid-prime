@@ -4,6 +4,7 @@ import GlassTabBar from "@/components/GlassTabBar";
 import StoriesBar from "@/components/StoriesBar";
 import FloatingActions from "@/components/FloatingActions";
 import FeedPost from "@/components/FeedPost";
+import LiquidBackground from "@/components/LiquidBackground";
 import { supabase } from "@/integrations/supabase/client";
 
 const Index = () => {
@@ -11,28 +12,22 @@ const Index = () => {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      // Fetch posts (not stories) with profile info
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from("posts")
         .select("*")
         .neq("media_type", "story")
         .order("created_at", { ascending: false })
         .limit(50);
-      
+
       if (data && data.length > 0) {
-        // Fetch profiles for these posts
         const userIds = [...new Set(data.map(p => p.user_id))];
         const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, display_name, username, avatar_url")
           .in("user_id", userIds);
-        
+
         const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-        const enriched = data.map(post => ({
-          ...post,
-          profile: profileMap.get(post.user_id) || null,
-        }));
-        setPosts(enriched);
+        setPosts(data.map(post => ({ ...post, profile: profileMap.get(post.user_id) || null })));
       } else {
         setPosts([]);
       }
@@ -42,13 +37,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background relative">
-      {/* Liquid glass ambient background */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-        <div className="absolute top-[-10%] left-[-10%] w-[60vw] h-[60vw] rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, hsl(210, 100%, 60%), transparent)" }} />
-        <div className="absolute bottom-[-5%] right-[-10%] w-[50vw] h-[50vw] rounded-full opacity-[0.03]" style={{ background: "radial-gradient(circle, hsl(280, 70%, 55%), transparent)" }} />
-        <div className="absolute top-[40%] left-[60%] w-[40vw] h-[40vw] rounded-full opacity-[0.02]" style={{ background: "radial-gradient(circle, hsl(350, 80%, 58%), transparent)" }} />
-      </div>
-
+      <LiquidBackground />
       <TopNavBar />
 
       <main className="relative z-10 pt-14 pb-24">
