@@ -1,40 +1,79 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Music, Search, Play, Pause, SkipForward, SkipBack, Volume2 } from "lucide-react";
+import { X, Music, Search, Play, Pause, SkipForward, SkipBack, Youtube } from "lucide-react";
 
-const tracks = [
-  { id: 1, title: "Blinding Lights", artist: "The Weeknd", duration: "3:20", genre: "Pop" },
-  { id: 2, title: "Shape of You", artist: "Ed Sheeran", duration: "3:53", genre: "Pop" },
-  { id: 3, title: "Bohemian Rhapsody", artist: "Queen", duration: "5:55", genre: "Rock" },
-  { id: 4, title: "Billie Jean", artist: "Michael Jackson", duration: "4:54", genre: "Pop" },
-  { id: 5, title: "Smells Like Teen Spirit", artist: "Nirvana", duration: "5:01", genre: "Rock" },
-  { id: 6, title: "Hotel California", artist: "Eagles", duration: "6:30", genre: "Rock" },
-  { id: 7, title: "Levitating", artist: "Dua Lipa", duration: "3:23", genre: "Pop" },
-  { id: 8, title: "Bad Guy", artist: "Billie Eilish", duration: "3:14", genre: "Pop" },
-  { id: 9, title: "Stairway to Heaven", artist: "Led Zeppelin", duration: "8:02", genre: "Rock" },
-  { id: 10, title: "Lose Yourself", artist: "Eminem", duration: "5:26", genre: "Hip-Hop" },
-  { id: 11, title: "Rolling in the Deep", artist: "Adele", duration: "3:48", genre: "Pop" },
-  { id: 12, title: "Humble", artist: "Kendrick Lamar", duration: "2:57", genre: "Hip-Hop" },
-  { id: 13, title: "Uptown Funk", artist: "Bruno Mars", duration: "4:30", genre: "Funk" },
-  { id: 14, title: "Someone Like You", artist: "Adele", duration: "4:45", genre: "Pop" },
-  { id: 15, title: "Starboy", artist: "The Weeknd", duration: "3:50", genre: "Pop" },
-  { id: 16, title: "God's Plan", artist: "Drake", duration: "3:18", genre: "Hip-Hop" },
-  { id: 17, title: "Happier Than Ever", artist: "Billie Eilish", duration: "4:58", genre: "Pop" },
-  { id: 18, title: "Anti-Hero", artist: "Taylor Swift", duration: "3:20", genre: "Pop" },
-  { id: 19, title: "As It Was", artist: "Harry Styles", duration: "2:47", genre: "Pop" },
-  { id: 20, title: "Flowers", artist: "Miley Cyrus", duration: "3:20", genre: "Pop" },
+interface Track {
+  id: number;
+  title: string;
+  artist: string;
+  duration: string;
+  genre: string;
+  youtubeId: string;
+}
+
+const tracks: Track[] = [
+  { id: 1, title: "Blinding Lights", artist: "The Weeknd", duration: "3:20", genre: "Pop", youtubeId: "4NRXx6U8ABQ" },
+  { id: 2, title: "Shape of You", artist: "Ed Sheeran", duration: "3:53", genre: "Pop", youtubeId: "JGwWNGJdvx8" },
+  { id: 3, title: "Bohemian Rhapsody", artist: "Queen", duration: "5:55", genre: "Rock", youtubeId: "fJ9rUzIMcZQ" },
+  { id: 4, title: "Billie Jean", artist: "Michael Jackson", duration: "4:54", genre: "Pop", youtubeId: "Zi_XLOBDo_Y" },
+  { id: 5, title: "Smells Like Teen Spirit", artist: "Nirvana", duration: "5:01", genre: "Rock", youtubeId: "hTWKbfoikeg" },
+  { id: 6, title: "Hotel California", artist: "Eagles", duration: "6:30", genre: "Rock", youtubeId: "BciS5krYL80" },
+  { id: 7, title: "Levitating", artist: "Dua Lipa", duration: "3:23", genre: "Pop", youtubeId: "TUVcZfQe-Kw" },
+  { id: 8, title: "Bad Guy", artist: "Billie Eilish", duration: "3:14", genre: "Pop", youtubeId: "DyDfgMOUjCI" },
+  { id: 9, title: "Stairway to Heaven", artist: "Led Zeppelin", duration: "8:02", genre: "Rock", youtubeId: "QkF3oxziUI4" },
+  { id: 10, title: "Lose Yourself", artist: "Eminem", duration: "5:26", genre: "Hip-Hop", youtubeId: "_Yhyp-_hX2s" },
+  { id: 11, title: "Rolling in the Deep", artist: "Adele", duration: "3:48", genre: "Pop", youtubeId: "rYEDA3JcQqw" },
+  { id: 12, title: "Humble", artist: "Kendrick Lamar", duration: "2:57", genre: "Hip-Hop", youtubeId: "tvTRZJ-4EyI" },
+  { id: 13, title: "Uptown Funk", artist: "Bruno Mars", duration: "4:30", genre: "Funk", youtubeId: "OPf0YbXqDm0" },
+  { id: 14, title: "Someone Like You", artist: "Adele", duration: "4:45", genre: "Pop", youtubeId: "hLQl3WQQoQ0" },
+  { id: 15, title: "Starboy", artist: "The Weeknd", duration: "3:50", genre: "Pop", youtubeId: "34Na4j8AVgA" },
+  { id: 16, title: "God's Plan", artist: "Drake", duration: "3:18", genre: "Hip-Hop", youtubeId: "xpVfcZ0ZcFM" },
+  { id: 17, title: "Flowers", artist: "Miley Cyrus", duration: "3:20", genre: "Pop", youtubeId: "G7KNmW9a75Y" },
+  { id: 18, title: "Anti-Hero", artist: "Taylor Swift", duration: "3:20", genre: "Pop", youtubeId: "b1kbLwvqugk" },
+  { id: 19, title: "As It Was", artist: "Harry Styles", duration: "2:47", genre: "Pop", youtubeId: "H5v3kku4y6Q" },
+  { id: 20, title: "Stay", artist: "The Kid LAROI & Justin Bieber", duration: "2:21", genre: "Pop", youtubeId: "kTJczUoc26U" },
+  { id: 21, title: "Peaches", artist: "Justin Bieber", duration: "3:18", genre: "Pop", youtubeId: "tQ0yjYUFKAE" },
+  { id: 22, title: "Watermelon Sugar", artist: "Harry Styles", duration: "2:54", genre: "Pop", youtubeId: "E07s5ZYadZw" },
+  { id: 23, title: "Savage Love", artist: "Jawsh 685 & Jason Derulo", duration: "2:51", genre: "Pop", youtubeId: "gUci-tsiU4I" },
+  { id: 24, title: "Rockstar", artist: "Post Malone ft. 21 Savage", duration: "3:38", genre: "Hip-Hop", youtubeId: "UceaB4D0jpo" },
+  { id: 25, title: "Thunder", artist: "Imagine Dragons", duration: "3:07", genre: "Rock", youtubeId: "fKopy74weus" },
+  { id: 26, title: "Believer", artist: "Imagine Dragons", duration: "3:24", genre: "Rock", youtubeId: "7wtfhZwyrcc" },
+  { id: 27, title: "Despacito", artist: "Luis Fonsi ft. Daddy Yankee", duration: "4:42", genre: "Latin", youtubeId: "kJQP7kiw5Fk" },
+  { id: 28, title: "Havana", artist: "Camila Cabello", duration: "3:37", genre: "Pop", youtubeId: "BQ0mxQXmLsk" },
+  { id: 29, title: "Old Town Road", artist: "Lil Nas X", duration: "1:53", genre: "Hip-Hop", youtubeId: "r7qovpFAGrQ" },
+  { id: 30, title: "Dance Monkey", artist: "Tones and I", duration: "3:29", genre: "Pop", youtubeId: "q0hyYWKXF0Q" },
 ];
 
 const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const [search, setSearch] = useState("");
-  const [playing, setPlaying] = useState<number | null>(null);
+  const [playing, setPlaying] = useState<Track | null>(null);
   const [filter, setFilter] = useState("All");
+  const [showPlayer, setShowPlayer] = useState(false);
 
-  const genres = ["All", "Pop", "Rock", "Hip-Hop", "Funk"];
+  const genres = ["All", "Pop", "Rock", "Hip-Hop", "Funk", "Latin"];
   const filtered = tracks.filter(t =>
     (filter === "All" || t.genre === filter) &&
     (t.title.toLowerCase().includes(search.toLowerCase()) || t.artist.toLowerCase().includes(search.toLowerCase()))
   );
+
+  const playTrack = (track: Track) => {
+    setPlaying(track);
+    setShowPlayer(true);
+  };
+
+  const nextTrack = () => {
+    if (!playing) return;
+    const idx = tracks.findIndex(t => t.id === playing.id);
+    const next = tracks[(idx + 1) % tracks.length];
+    playTrack(next);
+  };
+
+  const prevTrack = () => {
+    if (!playing) return;
+    const idx = tracks.findIndex(t => t.id === playing.id);
+    const prev = tracks[(idx - 1 + tracks.length) % tracks.length];
+    playTrack(prev);
+  };
 
   return (
     <AnimatePresence>
@@ -82,6 +121,29 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
             ))}
           </div>
 
+          {/* YouTube Player */}
+          <AnimatePresence>
+            {showPlayer && playing && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                className="px-5 overflow-hidden"
+              >
+                <div className="rounded-2xl overflow-hidden aspect-video mb-2">
+                  <iframe
+                    key={playing.youtubeId}
+                    src={`https://www.youtube.com/embed/${playing.youtubeId}?autoplay=1&rel=0`}
+                    title={playing.title}
+                    className="w-full h-full"
+                    allow="autoplay; encrypted-media"
+                    allowFullScreen
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
           <div className="flex-1 overflow-y-auto px-5 py-2 space-y-1.5">
             {filtered.map((track, i) => (
               <motion.button
@@ -89,17 +151,20 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ delay: i * 0.02 }}
-                onClick={() => setPlaying(playing === track.id ? null : track.id)}
-                className={`depth-press w-full rounded-2xl p-3 flex items-center gap-3 relative z-10 ${playing === track.id ? "liquid-glass-elevated" : "liquid-glass-subtle"}`}
+                onClick={() => playTrack(track)}
+                className={`depth-press w-full rounded-2xl p-3 flex items-center gap-3 relative z-10 ${playing?.id === track.id ? "liquid-glass-elevated" : "liquid-glass-subtle"}`}
               >
-                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${playing === track.id ? "bg-primary" : "bg-primary/20"}`}>
-                  {playing === track.id ? <Pause className="w-4 h-4 text-primary-foreground" /> : <Play className="w-4 h-4 text-primary" />}
+                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${playing?.id === track.id ? "bg-primary" : "bg-primary/20"}`}>
+                  {playing?.id === track.id ? <Pause className="w-4 h-4 text-primary-foreground" /> : <Play className="w-4 h-4 text-primary" />}
                 </div>
                 <div className="flex-1 text-left min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
                   <p className="text-caption text-muted-foreground truncate">{track.artist}</p>
                 </div>
-                <span className="text-caption text-muted-foreground">{track.duration}</span>
+                <div className="flex items-center gap-2">
+                  <Youtube className="w-3 h-3 text-destructive" />
+                  <span className="text-caption text-muted-foreground">{track.duration}</span>
+                </div>
               </motion.button>
             ))}
           </div>
@@ -115,15 +180,18 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
                   <Music className="w-5 h-5 text-primary" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-foreground truncate">{tracks.find(t => t.id === playing)?.title}</p>
-                  <p className="text-caption text-muted-foreground">{tracks.find(t => t.id === playing)?.artist}</p>
+                  <p className="text-sm font-medium text-foreground truncate">{playing.title}</p>
+                  <p className="text-caption text-muted-foreground">{playing.artist}</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <button className="depth-press" onClick={() => setPlaying(Math.max(1, (playing || 1) - 1))}><SkipBack className="w-5 h-5 text-foreground" /></button>
-                  <button className="depth-press w-10 h-10 rounded-full bg-primary flex items-center justify-center" onClick={() => setPlaying(null)}>
-                    <Pause className="w-5 h-5 text-primary-foreground" />
+                  <button className="depth-press" onClick={prevTrack}><SkipBack className="w-5 h-5 text-foreground" /></button>
+                  <button
+                    className="depth-press w-10 h-10 rounded-full bg-primary flex items-center justify-center"
+                    onClick={() => setShowPlayer(!showPlayer)}
+                  >
+                    {showPlayer ? <Pause className="w-5 h-5 text-primary-foreground" /> : <Play className="w-5 h-5 text-primary-foreground" />}
                   </button>
-                  <button className="depth-press" onClick={() => setPlaying(Math.min(tracks.length, (playing || 1) + 1))}><SkipForward className="w-5 h-5 text-foreground" /></button>
+                  <button className="depth-press" onClick={nextTrack}><SkipForward className="w-5 h-5 text-foreground" /></button>
                 </div>
               </div>
             </motion.div>
