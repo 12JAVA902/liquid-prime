@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Star, Play, Search, X, TrendingUp, Film, Heart, Loader2 } from "lucide-react";
+import { ArrowLeft, Star, Play, Search, X, Film, Heart, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import GlassTabBar from "@/components/GlassTabBar";
+import LiquidBackground from "@/components/LiquidBackground";
 
 const TMDB_IMG = "https://image.tmdb.org/t/p";
 const FUNC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tmdb-proxy`;
@@ -48,11 +49,7 @@ const MoviesPage = () => {
 
   useEffect(() => {
     setLoading(true);
-    const endpoints: Record<string, string> = {
-      trending: "trending/movie/week",
-      top_rated: "movie/top_rated",
-      upcoming: "movie/upcoming",
-    };
+    const endpoints: Record<string, string> = { trending: "trending/movie/week", top_rated: "movie/top_rated", upcoming: "movie/upcoming" };
     fetchMovies(endpoints[tab]).then(r => { setTrending(r); setLoading(false); });
   }, [tab]);
 
@@ -88,8 +85,9 @@ const MoviesPage = () => {
   const movies = search.trim() ? searchResults : trending;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <div className="liquid-glass-elevated safe-area-top">
+    <div className="min-h-screen bg-background pb-24 relative">
+      <LiquidBackground />
+      <div className="liquid-glass-elevated safe-area-top relative z-10">
         <div className="flex items-center gap-3 px-5 py-4 relative z-10">
           <button onClick={() => navigate(-1)} className="depth-press"><ArrowLeft className="w-5 h-5 text-foreground" /></button>
           <Film className="w-5 h-5 text-primary" />
@@ -97,7 +95,7 @@ const MoviesPage = () => {
         </div>
       </div>
 
-      <div className="px-4 py-3">
+      <div className="px-4 py-3 relative z-10">
         <div className="liquid-glass rounded-2xl flex items-center gap-2 px-4 py-3 relative z-10">
           <Search className="w-4 h-4 text-muted-foreground" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search movies..." className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none" />
@@ -106,7 +104,7 @@ const MoviesPage = () => {
       </div>
 
       {!search && (
-        <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-none">
+        <div className="flex gap-2 px-4 pb-3 overflow-x-auto scrollbar-none relative z-10">
           {([["trending", "🔥 Trending"], ["top_rated", "⭐ Top Rated"], ["upcoming", "🎬 Upcoming"]] as const).map(([k, l]) => (
             <button key={k} onClick={() => setTab(k)} className={`depth-press px-4 py-2 rounded-xl text-sm font-medium whitespace-nowrap ${tab === k ? "bg-primary text-primary-foreground" : "liquid-glass text-foreground relative z-10"}`}>
               {l}
@@ -116,18 +114,12 @@ const MoviesPage = () => {
       )}
 
       {loading && !search ? (
-        <div className="flex justify-center py-20"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
+        <div className="flex justify-center py-20 relative z-10"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
       ) : (
-        <div className="px-4 grid grid-cols-2 gap-3">
+        <div className="px-4 grid grid-cols-2 gap-3 relative z-10">
           {movies.map((movie, i) => (
-            <motion.button
-              key={movie.id}
-              initial={{ opacity: 0, y: 15 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: i * 0.03 }}
-              onClick={() => openMovie(movie)}
-              className="depth-press liquid-glass rounded-2xl overflow-hidden text-left relative"
-            >
+            <motion.button key={movie.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
+              onClick={() => openMovie(movie)} className="depth-press liquid-glass rounded-2xl overflow-hidden text-left relative">
               {movie.poster_path ? (
                 <img src={`${TMDB_IMG}/w342${movie.poster_path}`} alt={movie.title} className="w-full aspect-[2/3] object-cover" loading="lazy" />
               ) : (
@@ -141,11 +133,9 @@ const MoviesPage = () => {
                   <span className="text-xs text-muted-foreground ml-auto">{movie.release_date?.slice(0, 4)}</span>
                 </div>
               </div>
-              <button
-                onClick={e => { e.stopPropagation(); toggleFav(movie.id); }}
-                className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full liquid-glass flex items-center justify-center"
-              >
-                <Heart className={`w-3.5 h-3.5 ${favorites.has(movie.id) ? "text-red-500 fill-red-500" : "text-white"}`} />
+              <button onClick={e => { e.stopPropagation(); toggleFav(movie.id); }}
+                className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full liquid-glass flex items-center justify-center">
+                <Heart className={`w-3.5 h-3.5 ${favorites.has(movie.id) ? "text-destructive fill-current" : "text-foreground"}`} />
               </button>
             </motion.button>
           ))}
@@ -156,13 +146,12 @@ const MoviesPage = () => {
         {selectedMovie && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="fixed inset-0 z-[70] bg-background/95 backdrop-blur-xl flex flex-col" onClick={() => setSelectedMovie(null)}>
             <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} className="flex-1 overflow-y-auto" onClick={e => e.stopPropagation()}>
-              {/* Backdrop */}
               {selectedMovie.backdrop_path ? (
                 <div className="relative h-56">
                   <img src={`${TMDB_IMG}/w780${selectedMovie.backdrop_path}`} alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
                   <button onClick={() => setSelectedMovie(null)} className="absolute top-4 right-4 w-9 h-9 rounded-full liquid-glass flex items-center justify-center z-10">
-                    <X className="w-5 h-5 text-white" />
+                    <X className="w-5 h-5 text-foreground" />
                   </button>
                 </div>
               ) : (
@@ -170,12 +159,9 @@ const MoviesPage = () => {
                   <button onClick={() => setSelectedMovie(null)} className="depth-press w-9 h-9 rounded-full liquid-glass flex items-center justify-center"><X className="w-5 h-5 text-foreground" /></button>
                 </div>
               )}
-
               <div className="px-5 pb-8 -mt-12 relative z-10">
                 <div className="flex gap-4 mb-4">
-                  {selectedMovie.poster_path && (
-                    <img src={`${TMDB_IMG}/w185${selectedMovie.poster_path}`} alt="" className="w-24 rounded-xl shadow-lg" />
-                  )}
+                  {selectedMovie.poster_path && <img src={`${TMDB_IMG}/w185${selectedMovie.poster_path}`} alt="" className="w-24 rounded-xl shadow-lg" />}
                   <div className="flex-1 pt-12">
                     <h2 className="text-lg font-bold text-foreground">{selectedMovie.title}</h2>
                     <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground flex-wrap">
@@ -185,25 +171,15 @@ const MoviesPage = () => {
                     </div>
                   </div>
                 </div>
-
-                {/* Inline trailer */}
                 {trailerKey && (
                   <div className="rounded-2xl overflow-hidden mb-4 aspect-video">
-                    <iframe
-                      src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`}
-                      title="Trailer"
-                      className="w-full h-full"
-                      allow="autoplay; encrypted-media"
-                      allowFullScreen
-                    />
+                    <iframe src={`https://www.youtube.com/embed/${trailerKey}?autoplay=1&rel=0`} title="Trailer" className="w-full h-full" allow="autoplay; encrypted-media" allowFullScreen />
                   </div>
                 )}
-
                 <p className="text-sm text-foreground/80 leading-relaxed mb-4">{selectedMovie.overview}</p>
-
                 <div className="flex gap-3">
-                  <button onClick={() => toggleFav(selectedMovie.id)} className={`depth-press flex-1 py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 ${favorites.has(selectedMovie.id) ? "bg-red-500/20 text-red-400" : "liquid-glass text-foreground relative z-10"}`}>
-                    <Heart className={`w-4 h-4 ${favorites.has(selectedMovie.id) ? "fill-red-400" : ""}`} />
+                  <button onClick={() => toggleFav(selectedMovie.id)} className={`depth-press flex-1 py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 ${favorites.has(selectedMovie.id) ? "bg-destructive/20 text-destructive" : "liquid-glass text-foreground relative z-10"}`}>
+                    <Heart className={`w-4 h-4 ${favorites.has(selectedMovie.id) ? "fill-current" : ""}`} />
                     {favorites.has(selectedMovie.id) ? "Favorited" : "Favorite"}
                   </button>
                   {!trailerKey && (
