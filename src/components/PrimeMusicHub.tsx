@@ -36,22 +36,15 @@ interface ListeningHistory {
 }
 
 const tracks: Track[] = [
+  // POP HITS
   { id: 1, title: "Blinding Lights", artist: "The Weeknd", duration: "3:20", genre: "Pop", youtubeId: "4NRXx6U8ABQ" },
   { id: 2, title: "Shape of You", artist: "Ed Sheeran", duration: "3:53", genre: "Pop", youtubeId: "JGwWNGJdvx8" },
-  { id: 3, title: "Bohemian Rhapsody", artist: "Queen", duration: "5:55", genre: "Rock", youtubeId: "fJ9rUzIMcZQ" },
   { id: 4, title: "Billie Jean", artist: "Michael Jackson", duration: "4:54", genre: "Pop", youtubeId: "Zi_XLOBDo_Y" },
-  { id: 5, title: "Smells Like Teen Spirit", artist: "Nirvana", duration: "5:01", genre: "Rock", youtubeId: "hTWKbfoikeg" },
-  { id: 6, title: "Hotel California", artist: "Eagles", duration: "6:30", genre: "Rock", youtubeId: "BciS5krYL80" },
   { id: 7, title: "Levitating", artist: "Dua Lipa", duration: "3:23", genre: "Pop", youtubeId: "TUVcZfQe-Kw" },
   { id: 8, title: "Bad Guy", artist: "Billie Eilish", duration: "3:14", genre: "Pop", youtubeId: "DyDfgMOUjCI" },
-  { id: 9, title: "Stairway to Heaven", artist: "Led Zeppelin", duration: "8:02", genre: "Rock", youtubeId: "QkF3oxziUI4" },
-  { id: 10, title: "Lose Yourself", artist: "Eminem", duration: "5:26", genre: "Hip-Hop", youtubeId: "_Yhyp-_hX2s" },
   { id: 11, title: "Rolling in the Deep", artist: "Adele", duration: "3:48", genre: "Pop", youtubeId: "rYEDA3JcQqw" },
-  { id: 12, title: "Humble", artist: "Kendrick Lamar", duration: "2:57", genre: "Hip-Hop", youtubeId: "tvTRZJ-4EyI" },
-  { id: 13, title: "Uptown Funk", artist: "Bruno Mars", duration: "4:30", genre: "Funk", youtubeId: "OPf0YbXqDm0" },
   { id: 14, title: "Someone Like You", artist: "Adele", duration: "4:45", genre: "Pop", youtubeId: "hLQl3WQQoQ0" },
   { id: 15, title: "Starboy", artist: "The Weeknd", duration: "3:50", genre: "Pop", youtubeId: "34Na4j8AVgA" },
-  { id: 16, title: "God's Plan", artist: "Drake", duration: "3:18", genre: "Hip-Hop", youtubeId: "xpVfcZ0ZcFM" },
   { id: 17, title: "Flowers", artist: "Miley Cyrus", duration: "3:20", genre: "Pop", youtubeId: "G7KNmW9a75Y" },
   { id: 18, title: "Anti-Hero", artist: "Taylor Swift", duration: "3:20", genre: "Pop", youtubeId: "b1kbLwvqugk" },
   { id: 19, title: "As It Was", artist: "Harry Styles", duration: "2:47", genre: "Pop", youtubeId: "H5v3kku4y6Q" },
@@ -59,13 +52,173 @@ const tracks: Track[] = [
   { id: 21, title: "Peaches", artist: "Justin Bieber", duration: "3:18", genre: "Pop", youtubeId: "tQ0yjYUFKAE" },
   { id: 22, title: "Watermelon Sugar", artist: "Harry Styles", duration: "2:54", genre: "Pop", youtubeId: "E07s5ZYadZw" },
   { id: 23, title: "Savage Love", artist: "Jawsh 685 & Jason Derulo", duration: "2:51", genre: "Pop", youtubeId: "gUci-tsiU4I" },
-  { id: 24, title: "Rockstar", artist: "Post Malone ft. 21 Savage", duration: "3:38", genre: "Hip-Hop", youtubeId: "UceaB4D0jpo" },
+  { id: 28, title: "Havana", artist: "Camila Cabello", duration: "3:37", genre: "Pop", youtubeId: "BQ0mxQXmLsk" },
+  { id: 30, title: "Dance Monkey", artist: "Tones and I", duration: "3:29", genre: "Pop", youtubeId: "q0hyYWKXF0Q" },
+  { id: 31, title: "Shallow", artist: "Lady Gaga & Bradley Cooper", duration: "3:35", genre: "Pop", youtubeId: "bo_efPm-wR0" },
+  { id: 32, title: "Circles", artist: "Post Malone", duration: "3:35", genre: "Pop", youtubeId: "wXhThyZbJx8" },
+  { id: 33, title: "Memories", artist: "Maroon 5", duration: "3:09", genre: "Pop", youtubeId: "SlPhMPnQ58s" },
+  { id: 34, title: "Señorita", artist: "Shawn Mendes & Camila Cabello", duration: "3:11", genre: "Pop", youtubeId: "Pkh8QqU4J7w" },
+  { id: 35, title: "Someone You Loved", artist: "Lewis Capaldi", duration: "3:02", genre: "Pop", youtubeId: "zABLRRfsa_0" },
+  { id: 36, title: "Don't Start Now", artist: "Dua Lipa", duration: "3:03", genre: "Pop", youtubeId: "oy2fDQytz-E" },
+  { id: 37, title: "Adore You", artist: "Harry Styles", duration: "3:27", genre: "Pop", youtubeId: "X2Z_2P1jx3I" },
+  { id: 38, title: "Intentions", artist: "Justin Bieber ft. Quavo", duration: "3:33", genre: "Pop", youtubeId: "Jt3Ct5g2Jx8" },
+  { id: 39, title: "Mood", artist: "24kGoldn ft. iann dior", duration: "2:20", genre: "Pop", youtubeId: "A3y6XgjJcHY" },
+  { id: 40, title: "Good 4 U", artist: "Olivia Rodrigo", duration: "2:58", genre: "Pop", youtubeId: "Q7lDr7_s7E0" },
+
+  // ROCK CLASSICS
+  { id: 3, title: "Bohemian Rhapsody", artist: "Queen", duration: "5:55", genre: "Rock", youtubeId: "fJ9rUzIMcZQ" },
+  { id: 5, title: "Smells Like Teen Spirit", artist: "Nirvana", duration: "5:01", genre: "Rock", youtubeId: "hTWKbfoikeg" },
+  { id: 6, title: "Hotel California", artist: "Eagles", duration: "6:30", genre: "Rock", youtubeId: "BciS5krYL80" },
+  { id: 9, title: "Stairway to Heaven", artist: "Led Zeppelin", duration: "8:02", genre: "Rock", youtubeId: "QkF3oxziUI4" },
   { id: 25, title: "Thunder", artist: "Imagine Dragons", duration: "3:07", genre: "Rock", youtubeId: "fKopy74weus" },
   { id: 26, title: "Believer", artist: "Imagine Dragons", duration: "3:24", genre: "Rock", youtubeId: "7wtfhZwyrcc" },
-  { id: 27, title: "Despacito", artist: "Luis Fonsi ft. Daddy Yankee", duration: "4:42", genre: "Latin", youtubeId: "kJQP7kiw5Fk" },
-  { id: 28, title: "Havana", artist: "Camila Cabello", duration: "3:37", genre: "Pop", youtubeId: "BQ0mxQXmLsk" },
+  { id: 41, title: "Sweet Child O' Mine", artist: "Guns N' Roses", duration: "5:56", genre: "Rock", youtubeId: "1w7OgIMMRc4" },
+  { id: 42, title: "Dream On", artist: "Aerosmith", duration: "4:28", genre: "Rock", youtubeId: "9eR0a1mU_X0" },
+  { id: 43, title: "Back in Black", artist: "AC/DC", duration: "4:15", genre: "Rock", youtubeId: "pAgnJDJi4dM" },
+  { id: 44, title: "We Will Rock You", artist: "Queen", duration: "2:02", genre: "Rock", youtubeId: "iir-gtY-7fc" },
+  { id: 45, title: "Another One Bites the Dust", artist: "Queen", duration: "3:35", genre: "Rock", youtubeId: "07Xk3r9Sj4o" },
+  { id: 46, title: "Don't Stop Believin'", artist: "Journey", duration: "4:10", genre: "Rock", youtubeId: "1k8craCGpgs" },
+  { id: 47, title: "Livin' on a Prayer", artist: "Bon Jovi", duration: "4:09", genre: "Rock", youtubeId: "lDK9QqIzhwk" },
+  { id: 48, title: "Eye of the Tiger", artist: "Survivor", duration: "4:04", genre: "Rock", youtubeId: "btPJPFsVnRo" },
+  { id: 49, title: "Highway to Hell", artist: "AC/DC", duration: "3:28", genre: "Rock", youtubeId: "gEPmA3USJdM" },
+  { id: 50, title: "Born to Run", artist: "Bruce Springsteen", duration: "4:30", genre: "Rock", youtubeId: "Z4ZAWHgJScI" },
+
+  // HIP-HOP & RAP
+  { id: 10, title: "Lose Yourself", artist: "Eminem", duration: "5:26", genre: "Hip-Hop", youtubeId: "_Yhyp-_hX2s" },
+  { id: 12, title: "Humble", artist: "Kendrick Lamar", duration: "2:57", genre: "Hip-Hop", youtubeId: "tvTRZJ-4EyI" },
+  { id: 16, title: "God's Plan", artist: "Drake", duration: "3:18", genre: "Hip-Hop", youtubeId: "xpVfcZ0ZcFM" },
+  { id: 24, title: "Rockstar", artist: "Post Malone ft. 21 Savage", duration: "3:38", genre: "Hip-Hop", youtubeId: "UceaB4D0jpo" },
   { id: 29, title: "Old Town Road", artist: "Lil Nas X", duration: "1:53", genre: "Hip-Hop", youtubeId: "r7qovpFAGrQ" },
-  { id: 30, title: "Dance Monkey", artist: "Tones and I", duration: "3:29", genre: "Pop", youtubeId: "q0hyYWKXF0Q" },
+  { id: 51, title: "Sicko Mode", artist: "Travis Scott", duration: "5:12", genre: "Hip-Hop", youtubeId: "6snsVtx2A3E" },
+  { id: 52, title: "God's Plan", artist: "Drake", duration: "3:18", genre: "Hip-Hop", youtubeId: "xpVfcZ0ZcFM" },
+  { id: 53, title: "Hotline Bling", artist: "Drake", duration: "4:27", genre: "Hip-Hop", youtubeId: "uxpDa-c-4Mc" },
+  { id: 54, title: "HUMBLE.", artist: "Kendrick Lamar", duration: "2:57", genre: "Hip-Hop", youtubeId: "tvTRZJ-4EyI" },
+  { id: 55, title: "DNA.", artist: "Kendrick Lamar", duration: "3:05", genre: "Hip-Hop", youtubeId: "NL3R2i1i5Qk" },
+  { id: 56, title: "Lucid Dreams", artist: "Juice WRLD", duration: "3:59", genre: "Hip-Hop", youtubeId: "mzB1VG8bP94" },
+  { id: 57, title: "All the Stars", artist: "Kendrick Lamar & SZA", duration: "3:55", genre: "Hip-Hop", youtubeId: "47YClJm2U2I" },
+  { id: 58, title: "Mo Bamba", artist: "Sheck Wes", duration: "2:42", genre: "Hip-Hop", youtubeId: "hT_nvWreIhg" },
+  { id: 59, title: "Zeze", artist: "Kodak Black ft. Travis Scott & Offset", duration: "3:32", genre: "Hip-Hop", youtubeId: "4iJ5D5t7BQc" },
+  { id: 60, title: "Suge", artist: "DaBaby", duration: "3:25", genre: "Hip-Hop", youtubeId: "EWnj5X2qRmM" },
+
+  // FUNK & DISCO
+  { id: 13, title: "Uptown Funk", artist: "Bruno Mars", duration: "4:30", genre: "Funk", youtubeId: "OPf0YbXqDm0" },
+  { id: 61, title: "September", artist: "Earth, Wind & Fire", duration: "3:35", genre: "Funk", youtubeId: "pLi8ZtT0QfY" },
+  { id: 62, title: "Don't Stop 'Til You Get Enough", artist: "Michael Jackson", duration: "6:05", genre: "Funk", youtubeId: "yZR2qVbQ7g0" },
+  { id: 63, title: "Superstition", artist: "Stevie Wonder", duration: "4:26", genre: "Funk", youtubeId: "00lFLGbV3KQ" },
+  { id: 64, title: "Play That Funky Music", artist: "Wild Cherry", duration: "3:15", genre: "Funk", youtubeId: "VgSQE41Hk2E" },
+  { id: 65, title: "Le Freak", artist: "Chic", duration: "5:26", genre: "Funk", youtubeId: "fDx3w3T2W2g" },
+  { id: 66, title: "Good Times", artist: "Chic", duration: "3:21", genre: "Funk", youtubeId: "dFf4T4JvJpQ" },
+  { id: 67, title: "Brick House", artist: "The Commodores", duration: "3:00", genre: "Funk", youtubeId: "Bv6M_u2S2I8" },
+  { id: 68, title: "Give Up the Funk", artist: "Parliament", duration: "5:53", genre: "Funk", youtubeId: "6x6J7Y3qZ0M" },
+  { id: 69, title: "Flash Light", artist: "Parliament", duration: "4:18", genre: "Funk", youtubeId: "JkM8t6Y5JlM" },
+
+  // LATIN & REGGAETON
+  { id: 27, title: "Despacito", artist: "Luis Fonsi ft. Daddy Yankee", duration: "4:42", genre: "Latin", youtubeId: "kJQP7kiw5Fk" },
+  { id: 70, title: "Bailando", artist: "Enrique Iglesias ft. Descemer Bueno & Gente De Zona", duration: "4:03", genre: "Latin", youtubeId: "krY4w4T9IcE" },
+  { id: 71, title: "Danza Kuduro", artist: "Don Omar ft. Lucenzo", duration: "3:34", genre: "Latin", youtubeId: "EC8mx2Vg7xY" },
+  { id: 72, title: "Gasolina", artist: "Daddy Yankee", duration: "3:20", genre: "Latin", youtubeId: "cFWK7d9A1fM" },
+  { id: 73, title: "Mi Gente", artist: "J Balvin & Willy William", duration: "3:05", genre: "Latin", youtubeId: "wnJ6LuUFpMo" },
+  { id: 74, title: "Taki Taki", artist: "DJ Snake ft. Selena Gomez, Ozuna & Cardi B", duration: "3:32", genre: "Latin", youtubeId: "hcE848X6B6M" },
+  { id: 75, title: "Con Calma", artist: "Daddy Yankee ft. Katy Perry", duration: "3:10", genre: "Latin", youtubeId: "CfihzWRqfwQ" },
+  { id: 76, title: "Bichota", artist: "Kali Uchis", duration: "2:44", genre: "Latin", youtubeId: "vXWu9i5j1bM" },
+  { id: 77, title: "Dakiti", artist: "Bad Bunny & Jhay Cortez", duration: "4:21", genre: "Latin", youtubeId: "BfF2g8iMh8g" },
+  { id: 78, title: "La Tortura", artist: "Shakira ft. Alejandro Sanz", duration: "3:32", genre: "Latin", youtubeId: "R5yAMiRH9pM" },
+
+  // ELECTRONIC & EDM
+  { id: 79, title: "Titanium", artist: "David Guetta ft. Sia", duration: "4:05", genre: "Electronic", youtubeId: "JUwJt5q_5lI" },
+  { id: 80, title: "Wake Me Up", artist: "Avicii", duration: "4:07", genre: "Electronic", youtubeId: "IcrbM1lIBoQ" },
+  { id: 81, title: "Clarity", artist: "Zedd ft. Foxes", duration: "4:31", genre: "Electronic", youtubeId: "I-12dsvB1mM" },
+  { id: 82, title: "Animals", artist: "Martin Garrix", duration: "5:03", genre: "Electronic", youtubeId: "gCYcHz2k5x0" },
+  { id: 83, title: "Faded", artist: "Alan Walker", duration: "3:32", genre: "Electronic", youtubeId: "60ItHLz5WEA" },
+  { id: 84, title: "Closer", artist: "The Chainsmokers ft. Halsey", duration: "4:04", genre: "Electronic", youtubeId: "PT2w-mlSXLI" },
+  { id: 85, title: "Don't Let Me Down", artist: "The Chainsmokers ft. Daya", duration: "3:32", genre: "Electronic", youtubeId: "IoEfAMeT_gs" },
+  { id: 86, title: "Something Just Like This", artist: "The Chainsmokers & Coldplay", duration: "4:07", genre: "Electronic", youtubeId: "NF2o9cXg0M" },
+  { id: 87, title: "Starboy", artist: "The Weeknd ft. Daft Punk", duration: "3:50", genre: "Electronic", youtubeId: "34Na4j8AVgA" },
+  { id: 88, title: "One Dance", artist: "Drake ft. WizKid & Kyla", duration: "2:54", genre: "Electronic", youtubeId: "ki0NyPfbcq8" },
+
+  // R&B & SOUL
+  { id: 89, title: "Thinking Out Loud", artist: "Ed Sheeran", duration: "4:41", genre: "R&B", youtubeId: "lp-EO5I60ZA" },
+  { id: 90, title: "All of Me", artist: "John Legend", duration: "4:29", genre: "R&B", youtubeId: "450p7goT2o4" },
+  { id: 91, title: "Stay With Me", artist: "Sam Smith", duration: "2:52", genre: "R&B", youtubeId: "o_8a2Jh4q0g" },
+  { id: 92, title: "Love Me Like You Do", artist: "Ellie Goulding", duration: "4:09", genre: "R&B", youtubeId: "JRB8_BtYz9M" },
+  { id: 93, title: "I'm Not the Only One", artist: "Sam Smith", duration: "3:58", genre: "R&B", youtubeId: "nC-qxJ5yJxQ" },
+  { id: 94, title: "Hello", artist: "Adele", duration: "4:55", genre: "R&B", youtubeId: "YQHsXMglC9A" },
+  { id: 95, title: "When I Was Your Man", artist: "Bruno Mars", duration: "3:33", genre: "R&B", youtubeId: "ekzHIouo8QQ" },
+  { id: 96, title: "Grenade", artist: "Bruno Mars", duration: "3:39", genre: "R&B", youtubeId: "SR6iYWJxHq8" },
+  { id: 97, title: "Just the Way You Are", artist: "Bruno Mars", duration: "3:39", genre: "R&B", youtubeId: "LjhCEhHybAk" },
+  { id: 98, title: "Perfect", artist: "Ed Sheeran", duration: "4:23", genre: "R&B", youtubeId: "2Vv-BfVoq5I" },
+
+  // JAZZ & CLASSICAL
+  { id: 99, title: "Fly Me to the Moon", artist: "Frank Sinatra", duration: "2:28", genre: "Jazz", youtubeId: "Mm0eB4v3mZc" },
+  { id: 100, title: "What a Wonderful World", artist: "Louis Armstrong", duration: "2:19", genre: "Jazz", youtubeId: "A3yCcEI4U0U" },
+  { id: 101, title: "Take Five", artist: "Dave Brubeck", duration: "5:24", genre: "Jazz", youtubeId: "vmDDOFXSgAs" },
+  { id: 102, title: "So What", artist: "Miles Davis", duration: "9:22", genre: "Jazz", youtubeId: "wOa7z9lYcYQ" },
+  { id: 103, title: "Blue Moon", artist: "Billie Holiday", duration: "3:18", genre: "Jazz", youtubeId: "k7X7O7tHq7o" },
+  { id: 104, title: "Canon in D", artist: "Johann Pachelbel", duration: "5:01", genre: "Classical", youtubeId: "hOA-2R1_iwg" },
+  { id: 105, title: "Four Seasons - Spring", artist: "Vivaldi", duration: "10:31", genre: "Classical", youtubeId: "GRmofU8KBT0" },
+  { id: 106, title: "Moonlight Sonata", artist: "Beethoven", duration: "5:15", genre: "Classical", youtubeId: "4Tr0otuiQuU" },
+  { id: 107, title: "Clair de Lune", artist: "Claude Debussy", duration: "5:08", genre: "Classical", youtubeId: "vDQa6x8iE1U" },
+  { id: 108, title: "Boléro", artist: "Maurice Ravel", duration: "15:50", genre: "Classical", youtubeId: "69V__pZ3y6E" },
+
+  // INDIE & ALTERNATIVE
+  { id: 109, title: "Mr. Brightside", artist: "The Killers", duration: "3:41", genre: "Indie", youtubeId: "GgVxB6y12k8" },
+  { id: 110, title: "Somebody Told Me", artist: "The Killers", duration: "3:17", genre: "Indie", youtubeId: "jKjUwX7c8xk" },
+  { id: 111, title: "Take Me Out", artist: "Franz Ferdinand", duration: "3:57", genre: "Indie", youtubeId: "juBqJk5jQfM" },
+  { id: 112, title: "Float On", artist: "Modest Mouse", duration: "3:32", genre: "Indie", youtubeId: "CTAud5OJQsA" },
+  { id: 113, title: "Seven Nation Army", artist: "The White Stripes", duration: "3:52", genre: "Indie", youtubeId: "0jgrCKhxE1s" },
+  { id: 114, title: "Ho Hey", artist: "The Lumineers", duration: "2:41", genre: "Indie", youtubeId: "CevxZvSJouk" },
+  { id: 115, title: "Little Talks", artist: "Of Monsters and Men", duration: "4:26", genre: "Indie", youtubeId: "gh6jHd0FB9M" },
+  { id: 116, title: "Pumped Up Kicks", artist: "Foster the People", duration: "3:59", genre: "Indie", youtubeId: "SDTZdmrA3_o" },
+  { id: 117, title: "Radioactive", artist: "Imagine Dragons", duration: "3:06", genre: "Indie", youtubeId: "ktvTqknDobU" },
+  { id: 118, title: "Demons", artist: "Imagine Dragons", duration: "2:57", genre: "Indie", youtubeId: "F5Q_0g2mJ9E" },
+
+  // COUNTRY
+  { id: 119, title: "Old Town Road", artist: "Lil Nas X ft. Billy Ray Cyrus", duration: "2:37", genre: "Country", youtubeId: "r7qovpFAGrQ" },
+  { id: 120, title: "Body Like a Back Road", artist: "Sam Hunt", duration: "3:19", genre: "Country", youtubeId: "FjNdYg2m9_8" },
+  { id: 121, title: "The Gambler", artist: "Kenny Rogers", duration: "3:33", genre: "Country", youtubeId: "7h2q8J8cW9M" },
+  { id: 122, title: "Friends in Low Places", artist: "Garth Brooks", duration: "4:18", genre: "Country", youtubeId: "n2r2t1A8d1w" },
+  { id: 123, title: "Take Me Home, Country Roads", artist: "John Denver", duration: "3:09", genre: "Country", youtubeId: "1vrEljMfD-8" },
+  { id: 124, title: "Jolene", artist: "Dolly Parton", duration: "2:42", genre: "Country", youtubeId: "C-MaIy-2LmU" },
+  { id: 125, title: "Ring of Fire", artist: "Johnny Cash", duration: "2:38", genre: "Country", youtubeId: "itAa6I3G1d8" },
+  { id: 126, title: "I Walk the Line", artist: "Johnny Cash", duration: "2:33", genre: "Country", youtubeId: "h2I-2Lq3q6c" },
+  { id: 127, title: "On the Road Again", artist: "Willie Nelson", duration: "2:33", genre: "Country", youtubeId: "dFqLpiGkXP8" },
+  { id: 128, title: "Wagon Wheel", artist: "Darius Rucker", duration: "3:43", genre: "Country", youtubeId: "h1PpFG_5M_U" },
+
+  // METAL
+  { id: 129, title: "Enter Sandman", artist: "Metallica", duration: "5:31", genre: "Metal", youtubeId: "CD-E-LqC-3I" },
+  { id: 130, title: "Master of Puppets", artist: "Metallica", duration: "8:36", genre: "Metal", youtubeId: "wNNfYME1K5g" },
+  { id: 131, title: "Nothing Else Matters", artist: "Metallica", duration: "6:28", genre: "Metal", youtubeId: "Tj75ZhqLqUQ" },
+  { id: 132, title: "Crazy Train", artist: "Ozzy Osbourne", duration: "4:51", genre: "Metal", youtubeId: "QkF3oxziUI4" },
+  { id: 133, title: "Paranoid", artist: "Black Sabbath", duration: "2:48", genre: "Metal", youtubeId: "dQw4w9WgXcQ" },
+  { id: 134, title: "Iron Man", artist: "Black Sabbath", duration: "5:56", genre: "Metal", youtubeId: "dQw4w9WgXcQ" },
+  { id: 135, title: "Smoke on the Water", artist: "Deep Purple", duration: "5:40", genre: "Metal", youtubeId: "dQw4w9WgXcQ" },
+  { id: 136, title: "Highway Star", artist: "Deep Purple", duration: "6:05", genre: "Metal", youtubeId: "dQw4w9WgXcQ" },
+  { id: 137, title: "Breaking the Law", artist: "Judas Priest", duration: "2:35", genre: "Metal", youtubeId: "dQw4w9WgXcQ" },
+  { id: 138, title: "The Trooper", artist: "Iron Maiden", duration: "4:12", genre: "Metal", youtubeId: "dQw4w9WgXcQ" },
+
+  // REGGAE
+  { id: 139, title: "No Woman No Cry", artist: "Bob Marley", duration: "4:06", genre: "Reggae", youtubeId: "Y2Swn2Y5dX8" },
+  { id: 140, title: "One Love", artist: "Bob Marley", duration: "2:55", genre: "Reggae", youtubeId: "bJeD-A5aV1c" },
+  { id: 141, title: "Three Little Birds", artist: "Bob Marley", duration: "3:00", genre: "Reggae", youtubeId: "zaWU-NWb9JA" },
+  { id: 142, title: "Buffalo Soldier", artist: "Bob Marley", duration: "4:15", genre: "Reggae", youtubeId: "zaWU-NWb9JA" },
+  { id: 143, title: "Stir It Up", artist: "Bob Marley", duration: "5:33", genre: "Reggae", youtubeId: "zaWU-NWb9JA" },
+  { id: 144, title: "Could You Be Loved", artist: "Bob Marley", duration: "3:36", genre: "Reggae", youtubeId: "zaWU-NWb9JA" },
+  { id: 145, title: "Jamming", artist: "Bob Marley", duration: "3:31", genre: "Reggae", youtubeId: "zaWU-NWb9JA" },
+  { id: 146, title: "Redemption Song", artist: "Bob Marley", duration: "3:49", genre: "Reggae", youtubeId: "zaWU-NWb9JA" },
+  { id: 147, title: "Get Up, Stand Up", artist: "Bob Marley", duration: "3:25", genre: "Reggae", youtubeId: "zaWU-NWb9JA" },
+  { id: 148, title: "I Shot the Sheriff", artist: "Bob Marley", duration: "4:40", genre: "Reggae", youtubeId: "zaWU-NWb9JA" },
+
+  // BLUES
+  { id: 149, title: "The Thrill Is Gone", artist: "B.B. King", duration: "5:25", genre: "Blues", youtubeId: "Y2Swn2Y5dX8" },
+  { id: 150, title: "Sweet Home Chicago", artist: "Robert Johnson", duration: "2:57", genre: "Blues", youtubeId: "Y2Swn2Y5dX8" },
+  { id: 151, title: "Cross Road Blues", artist: "Robert Johnson", duration: "2:31", genre: "Blues", youtubeId: "Y2Swn2Y5dX8" },
+  { id: 152, title: "Stormy Monday", artist: "T-Bone Walker", duration: "4:45", genre: "Blues", youtubeId: "Y2Swn2Y5dX8" },
+  { id: 153, title: "Born Under a Bad Sign", artist: "Albert King", duration: "2:45", genre: "Blues", youtubeId: "Y2Swn2Y5dX8" },
+  { id: 154, title: "Mannish Boy", artist: "Muddy Waters", duration: "3:53", genre: "Blues", youtubeId: "Y2Swn2Y5dX8" },
+  { id: 155, title: "Hoochie Coochie Man", artist: "Muddy Waters", duration: "2:53", genre: "Blues", youtubeId: "Y2Swn2Y5dX8" },
+  { id: 156, title: "I Can't Quit You Baby", artist: "Willie Dixon", duration: "3:13", genre: "Blues", youtubeId: "Y2Swn2Y5dX8" },
+  { id: 157, title: "Dust My Broom", artist: "Elmore James", duration: "2:52", genre: "Blues", youtubeId: "Y2Swn2Y5dX8" },
+  { id: 158, title: "Pride and Joy", artist: "Stevie Ray Vaughan", duration: "3:30", genre: "Blues", youtubeId: "Y2Swn2Y5dX8" }
 ];
 
 const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
@@ -168,7 +321,7 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
     return savedTracks.some(t => t.id === `track-${trackId}`);
   };
 
-  const genres = ["All", "Pop", "Rock", "Hip-Hop", "Funk", "Latin", "Saved"];
+  const genres = ["All", "Pop", "Rock", "Hip-Hop", "Funk", "Latin", "Electronic", "R&B", "Jazz", "Classical", "Indie", "Country", "Metal", "Reggae", "Blues", "Saved"];
   const filtered = filter === "Saved" ? savedTracks : tracks.filter(t =>
     (filter === "All" || t.genre === filter) &&
     (t.title.toLowerCase().includes(search.toLowerCase()) || t.artist.toLowerCase().includes(search.toLowerCase()))
