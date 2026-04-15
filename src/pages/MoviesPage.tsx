@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Star, Play, Search, X, Film, Heart, Loader2 } from "lucide-react";
+import { ArrowLeft, Star, Play, Search, X, Film, Heart, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import GlassTabBar from "@/components/GlassTabBar";
 import LiquidBackground from "@/components/LiquidBackground";
@@ -35,9 +35,12 @@ const MoviesPage = () => {
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"trending" | "top_rated" | "upcoming">("trending");
 
   const fetchMovies = async (endpoint: string) => {
+    setLoading(true);
+    setError(null);
     try {
       const res = await fetch(`${FUNC_URL}?endpoint=${endpoint}`, {
         headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
@@ -46,29 +49,36 @@ const MoviesPage = () => {
       const data = await res.json();
       if (!data || !Array.isArray(data.results)) {
         console.warn('Invalid TMDB response format:', data);
+        setError('Failed to load movies');
         return [];
       }
       return data.results.filter((movie: any) => movie && movie.id && movie.title);
     } catch (error) {
       console.error('TMDB fetch error:', error);
+      setError('Network error. Please try again.');
       return [];
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    setLoading(true);
     const endpoints: Record<string, string> = { trending: "trending/movie/week", top_rated: "movie/top_rated", upcoming: "movie/upcoming" };
-    fetchMovies(endpoints[tab]).then(r => { setTrending(r); setLoading(false); });
+    fetchMovies(endpoints[tab]).then(r => { setTrending(r); });
   }, [tab]);
 
   useEffect(() => {
-    if (!search.trim()) { setSearchResults([]); return; }
+    if (!search.trim()) { setSearchResults([]); setError(null); return; }
     const t = setTimeout(async () => {
-      const res = await fetch(`${FUNC_URL}?endpoint=search/movie&query=${encodeURIComponent(search)}`, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-      });
-      const data = await res.json();
-      setSearchResults(data.results || []);
+      try {
+        const res = await fetch(`${FUNC_URL}?endpoint=search/movie&query=${encodeURIComponent(search)}`, {
+          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        });
+        const data = await res.json();
+        setSearchResults(data.results || []);
+      } catch (err) {
+        setError('Search failed. Please try again.');
+      }
     }, 400);
     return () => clearTimeout(t);
   }, [search]);
@@ -121,7 +131,27 @@ const MoviesPage = () => {
         </div>
       )}
 
-      {loading && !search ? (
+      {error && (
+        <div className="flex flex-col items-center justify-center py-20 relative z-10">
+          <AlertCircle className="w-12 h-12 text-destructive mb-4" />
+          <p className="text-center text-muted-foreground">{error}</p>
+          <button onClick={() => setError(null)} className="mt-4 px-4 py-2 bg-primary text-primary-foreground rounded-lg">
+            Try Again
+          </button>
+        </div>
+      )}
+
+      {loading && !search && !error ? (
+        <div className="px-4 grid grid-cols-2 gap-3 relative z-10">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={i} className="aspect-[2/3] bg-secondary rounded-2xl animate-pulse">
+              <div className="w-full h-full flex items-center justify-center">
+                <Film className="w-8 h-8 text-muted-foreground" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : !error && (
         <div className="flex justify-center py-20 relative z-10"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
       ) : (
         <div className="px-4 grid grid-cols-2 gap-3 relative z-10">
@@ -129,7 +159,7 @@ const MoviesPage = () => {
             <motion.button key={movie.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
               onClick={() => openMovie(movie)} className="depth-press liquid-glass rounded-2xl overflow-hidden text-left relative">
               {movie.poster_path ? (
-                <img src={`${TMDB_IMG}/w342${movie.poster_path}`} alt={movie.title} className="w-full aspect-[2/3] object-cover" loading="lazy" />
+                <img src={`${TMDB_IMG}/w500${movie.poster_path}`} alt={movie.title} className="w-full aspect-[2/3] object-cover" loading="lazy" />
               ) : (
                 <div className="w-full aspect-[2/3] bg-secondary flex items-center justify-center"><Film className="w-8 h-8 text-muted-foreground" /></div>
               )}
@@ -156,7 +186,7 @@ const MoviesPage = () => {
             <motion.div initial={{ y: 40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} exit={{ y: 40, opacity: 0 }} className="flex-1 overflow-y-auto" onClick={e => e.stopPropagation()}>
               {selectedMovie.backdrop_path ? (
                 <div className="relative h-56">
-                  <img src={`${TMDB_IMG}/w780${selectedMovie.backdrop_path}`} alt="" className="w-full h-full object-cover" />
+                  <img src={`${TMDB_IMG}/w1280${selectedMovie.backdrop_path}`} alt="" className="w-full h-full object-cover" />
                   <div className="absolute inset-0 bg-gradient-to-t from-background via-background/50 to-transparent" />
                   <button onClick={() => setSelectedMovie(null)} className="absolute top-4 right-4 w-9 h-9 rounded-full liquid-glass flex items-center justify-center z-10">
                     <X className="w-5 h-5 text-foreground" />
@@ -168,15 +198,15 @@ const MoviesPage = () => {
                 </div>
               )}
               <div className="px-5 pb-8 -mt-12 relative z-10">
-                <div className="flex gap-4 mb-4">
-                  {selectedMovie.poster_path && <img src={`${TMDB_IMG}/w185${selectedMovie.poster_path}`} alt="" className="w-24 rounded-xl shadow-lg" />}
-                  <div className="flex-1 pt-12">
-                    <h2 className="text-lg font-bold text-foreground">{selectedMovie.title}</h2>
-                    <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground flex-wrap">
-                      <span className="flex items-center gap-1 text-primary"><Star className="w-3 h-3" />{selectedMovie.vote_average.toFixed(1)}</span>
-                      <span>{selectedMovie.release_date?.slice(0, 4)}</span>
-                      {selectedMovie.genre_ids?.slice(0, 2).map(g => <span key={g} className="px-2 py-0.5 rounded-full liquid-glass-subtle text-xs">{genreMap[g] || ""}</span>)}
-                    </div>
+                <div className="w-24 rounded-xl shadow-lg">
+                  <img src={`${TMDB_IMG}/w500${selectedMovie.poster_path}`} alt="" className="w-24 rounded-xl shadow-lg" />
+                </div>
+                <div className="flex-1 pt-12">
+                  <h2 className="text-lg font-bold text-foreground">{selectedMovie.title}</h2>
+                  <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground flex-wrap">
+                    <span className="flex items-center gap-1 text-primary"><Star className="w-3 h-3" />{selectedMovie.vote_average.toFixed(1)}</span>
+                    <span>{selectedMovie.release_date?.slice(0, 4)}</span>
+                    {selectedMovie.genre_ids?.slice(0, 2).map(g => <span key={g} className="px-2 py-0.5 rounded-full liquid-glass-subtle text-xs">{genreMap[g] || ""}</span>)}
                   </div>
                 </div>
                 {trailerKey && (

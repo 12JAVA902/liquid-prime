@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Music, Search, Play, Pause, SkipForward, SkipBack, Youtube, Download, Heart, Volume2 } from "lucide-react";
+import { X, Music, Search, Play, Pause, SkipForward, SkipBack, Youtube, Download, Heart, Volume2, Wifi, WifiOff } from "lucide-react";
+import YouTubePlayer from "./YouTubePlayer";
 
 interface Track {
   id: number;
@@ -9,14 +10,29 @@ interface Track {
   duration: string;
   genre: string;
   youtubeId: string;
-  saved?: boolean;
+  isOffline?: boolean;
+  downloadUrl?: string;
   playCount?: number;
   lastPlayed?: string;
 }
 
-interface SavedTrack extends Track {
+interface SavedTrack {
   id: string;
+  trackId: number;
+  title: string;
+  artist: string;
+  duration: string;
+  genre: string;
+  youtubeId: string;
   addedAt: string;
+  playCount?: number;
+  lastPlayed?: string;
+}
+
+interface ListeningHistory {
+  id: string;
+  trackId: number;
+  timestamp: string;
 }
 
 const tracks: Track[] = [
@@ -56,11 +72,14 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
   const [search, setSearch] = useState("");
   const [playing, setPlaying] = useState<Track | null>(null);
   const [filter, setFilter] = useState("All");
-  const [showPlayer, setShowPlayer] = useState(false);
   const [savedTracks, setSavedTracks] = useState<SavedTrack[]>([]);
+  const [offlineMode, setOfflineMode] = useState(false);
   const [volume, setVolume] = useState(1);
   const [isShuffled, setIsShuffled] = useState(false);
   const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('off');
+  const [showPlayer, setShowPlayer] = useState(true);
+  const [listeningHistory, setListeningHistory] = useState<ListeningHistory[]>([]);
+  const [showPickedForYou, setShowPickedForYou] = useState(false);
   const playerRef = useRef<HTMLIFrameElement>(null);
 
   // IndexedDB setup
@@ -230,25 +249,101 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
             ))}
           </div>
 
-          {/* YouTube Player */}
+          {/* Mini Player in Footer */}
           <AnimatePresence>
-            {showPlayer && playing && (
+            {playing && showPlayer && (
               <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: "auto", opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                className="px-5 overflow-hidden"
+                initial={{ y: 100, opacity: 0 }}
+                animate={{ y: 0, opacity: 1 }}
+                exit={{ y: 100, opacity: 0 }}
+                className="fixed bottom-24 left-4 right-4 z-[55] w-80"
               >
-                <div className="rounded-2xl overflow-hidden aspect-video mb-2">
-                  <iframe
-                    ref={playerRef}
-                    key={playing.youtubeId}
-                    src={`https://www.youtube.com/embed/${playing.youtubeId}?autoplay=1&rel=0&controls=1&modestbranding=1`}
+                <div className="liquid-glass-elevated rounded-2xl p-3">
+                  <div className="flex items-center gap-3 mb-2">
+                    <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                      <Music className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium text-foreground truncate">{playing.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{playing.artist}</p>
+                    </div>
+                    <button
+                      onClick={() => setShowPlayer(false)}
+                      className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center"
+                    >
+                      <X className="w-4 h-4 text-foreground" />
+                    </button>
+                  </div>
+                  
+                  <YouTubePlayer
+                    videoId={playing.youtubeId}
                     title={playing.title}
-                    className="w-full h-full"
-                    allow="autoplay; encrypted-media; fullscreen"
-                    allowFullScreen
+                    artist={playing.artist}
+                    isPlaying={true}
+                    onPlay={() => {}}
+                    onPause={() => {}}
                   />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+
+          {/* Picked for You Section */}
+          <AnimatePresence>
+            {showPickedForYou && (
+              <motion.div
+                initial={{ opacity: 0, y: 100 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 100 }}
+                className="fixed inset-0 z-[65] bg-background/95 backdrop-blur-xl flex items-center justify-center p-6"
+                onClick={() => setShowPickedForYou(false)}
+              >
+                <div className="liquid-glass-elevated rounded-3xl p-6 max-w-md w-full">
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+                      <span className="text-2xl font-bold text-primary-foreground">🎵</span>
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="text-lg font-bold text-foreground mb-2">Picked for You</h3>
+                      <p className="text-sm text-muted-foreground mb-4">Based on your listening history, we think you'll love:</p>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    {listeningHistory.slice(0, 6).map((item, i) => (
+                      <motion.div
+                        key={item.id}
+                        initial={{ opacity: 0, scale: 0.8 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ delay: i * 0.1 }}
+                        className="liquid-glass rounded-2xl p-4 cursor-pointer hover:scale-105 transition-transform"
+                        onClick={() => {
+                          const track = tracks.find(t => t.id === item.trackId);
+                          if (track) playTrack(track);
+                          setShowPickedForYou(false);
+                        }}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center">
+                            <span className="text-primary font-bold">{i + 1}</span>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-foreground">{tracks.find(t => t.id === item.trackId)?.title || 'Unknown Track'}</p>
+                            <p className="text-xs text-muted-foreground">{tracks.find(t => t.id === item.trackId)?.artist || 'Unknown Artist'}</p>
+                          </div>
+                        </div>
+                      </motion.div>
+                    ))}
+                  </div>
+                  
+                  <div className="flex justify-center mt-6">
+                    <button
+                      onClick={() => setShowPickedForYou(false)}
+                      className="depth-press px-6 py-3 bg-primary text-primary-foreground rounded-xl font-medium"
+                    >
+                      Close
+                    </button>
+                  </div>
                 </div>
               </motion.div>
             )}
@@ -271,12 +366,19 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
                   <p className="text-sm font-medium text-foreground truncate">{track.title}</p>
                   <p className="text-caption text-muted-foreground truncate">{track.artist}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                   <button
-                    onClick={e => { e.stopPropagation(); isTrackSaved(track.id) ? removeSavedTrack(track.id) : saveTrack(track); }}
+                    onClick={() => saveTrack(track)}
                     className="depth-press w-7 h-7 rounded-full liquid-glass-subtle flex items-center justify-center"
                   >
                     <Heart className={`w-3.5 h-3.5 ${isTrackSaved(track.id) ? "text-destructive fill-current" : "text-foreground"}`} />
+                  </button>
+                  <button
+                    onClick={() => track.downloadUrl && window.open(track.downloadUrl, '_blank')}
+                    className="depth-press w-7 h-7 rounded-full liquid-glass-subtle flex items-center justify-center"
+                    disabled={!track.downloadUrl}
+                  >
+                    <Download className="w-3.5 h-3.5 text-foreground" />
                   </button>
                   <Youtube className="w-3 h-3 text-destructive" />
                   <span className="text-caption text-muted-foreground">{track.duration}</span>
