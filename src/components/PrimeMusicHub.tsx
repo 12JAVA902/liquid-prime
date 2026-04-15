@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Music, Search, Play, Pause, SkipForward, SkipBack, Youtube, Download, Heart, Volume2, Wifi, WifiOff } from "lucide-react";
+import { X, Music, Search, Play, Pause, SkipForward, SkipBack, Youtube, Download, Heart, Volume2, Wifi, WifiOff, TrendingUp, Globe, DownloadCloud } from "lucide-react";
 import YouTubePlayer from "./YouTubePlayer";
+import { youtubeService, YouTubeSearchResult, DownloadProgress } from "../services/YouTubeService";
 
 interface Track {
   id: number;
@@ -233,6 +234,12 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
   const [showPlayer, setShowPlayer] = useState(true);
   const [listeningHistory, setListeningHistory] = useState<ListeningHistory[]>([]);
   const [showPickedForYou, setShowPickedForYou] = useState(false);
+  const [youtubeSearch, setYoutubeSearch] = useState("");
+  const [youtubeResults, setYoutubeResults] = useState<YouTubeSearchResult[]>([]);
+  const [trendingMusic, setTrendingMusic] = useState<YouTubeSearchResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [downloads, setDownloads] = useState<Map<string, DownloadProgress>>(new Map());
+  const [activeTab, setActiveTab] = useState<'library' | 'youtube' | 'trending'>('library');
   const playerRef = useRef<HTMLIFrameElement>(null);
 
   // IndexedDB setup
@@ -408,6 +415,135 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
     setRepeatMode(modes[(currentIndex + 1) % modes.length]);
   };
 
+  // YouTube search functionality
+  const handleYouTubeSearch = async () => {
+    if (!youtubeSearch.trim()) return;
+    
+    setIsSearching(true);
+    try {
+      const results = await youtubeService.searchMusic(youtubeSearch, 50);
+      setYoutubeResults(results);
+    } catch (error) {
+      console.error('YouTube search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  // Load trending music
+  const loadTrendingMusic = async () => {
+    try {
+      const trending = await youtubeService.getTrendingMusic();
+      setTrendingMusic(trending);
+    } catch (error) {
+      console.error('Trending music error:', error);
+    }
+  };
+
+  // Download track
+  const downloadTrack = async (youtubeResult: YouTubeSearchResult) => {
+    const downloadId = `download-${youtubeResult.youtubeId}`;
+    
+    // Initialize download progress
+    setDownloads(prev => new Map(prev.set(downloadId, {
+      trackId: downloadId,
+      progress: 0,
+      status: 'pending'
+    })));
+
+    try {
+      // Update status to downloading
+      setDownloads(prev => {
+        const newMap = new Map(prev);
+        const download = newMap.get(downloadId);
+        if (download) {
+          download.status = 'downloading';
+        }
+        return newMap;
+      });
+
+      const blob = await youtubeService.downloadVideo(
+        youtubeResult.youtubeId,
+        youtubeResult.title,
+        (progress) => {
+          setDownloads(prev => {
+            const newMap = new Map(prev);
+            const download = newMap.get(downloadId);
+            if (download) {
+              download.progress = progress;
+            }
+            return newMap;
+          });
+        }
+      );
+
+      // Create download link
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${youtubeResult.title} - ${youtubeResult.artist}.mp3`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      // Mark as completed
+      setDownloads(prev => {
+        const newMap = new Map(prev);
+        const download = newMap.get(downloadId);
+        if (download) {
+          download.status = 'completed';
+          download.progress = 100;
+        }
+        return newMap;
+      });
+
+      // Remove from downloads after 5 seconds
+      setTimeout(() => {
+        setDownloads(prev => {
+          const newMap = new Map(prev);
+          newMap.delete(downloadId);
+          return newMap;
+        });
+      }, 5000);
+
+    } catch (error) {
+      console.error('Download error:', error);
+      setDownloads(prev => {
+        const newMap = new Map(prev);
+        const download = newMap.get(downloadId);
+        if (download) {
+          download.status = 'error';
+          download.error = 'Download failed';
+        }
+        return newMap;
+      });
+    }
+  };
+
+  // Play YouTube track
+  const playYouTubeTrack = (youtubeResult: YouTubeSearchResult) => {
+    const track: Track = {
+      id: parseInt(youtubeResult.youtubeId.replace(/[^0-9]/g, '')) || Date.now(),
+      title: youtubeResult.title,
+      artist: youtubeResult.artist,
+      duration: youtubeResult.duration,
+      genre: 'YouTube',
+      youtubeId: youtubeResult.youtubeId
+    };
+    
+    setPlaying(track);
+    setShowPlayer(true);
+    saveTrack(track);
+  };
+
+  // Load trending music on component mount and tab change
+  useEffect(() => {
+    if (activeTab === 'trending' && trendingMusic.length === 0) {
+      loadTrendingMusic();
+    }
+  }, [activeTab]);
+
   return (
     <AnimatePresence>
       {open && (
@@ -442,17 +578,61 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
             </div>
           </div>
 
+          {/* Tab Navigation */}
           <div className="flex gap-2 px-5 pb-2 overflow-x-auto scrollbar-none">
-            {genres.map(g => (
+            {(['library', 'youtube', 'trending'] as const).map(tab => (
               <button
-                key={g}
-                onClick={() => setFilter(g)}
-                className={`depth-press px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap ${filter === g ? "bg-primary text-primary-foreground" : "liquid-glass-subtle text-foreground relative z-10"}`}
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className={`depth-press px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap flex items-center gap-1 ${activeTab === tab ? "bg-primary text-primary-foreground" : "liquid-glass-subtle text-foreground relative z-10"}`}
               >
-                {g}
+                {tab === 'library' && <Music className="w-3 h-3" />}
+                {tab === 'youtube' && <Globe className="w-3 h-3" />}
+                {tab === 'trending' && <TrendingUp className="w-3 h-3" />}
+                {tab === 'library' && 'Library'}
+                {tab === 'youtube' && 'YouTube'}
+                {tab === 'trending' && 'Trending'}
               </button>
             ))}
           </div>
+
+          {/* Genre Filters - Only show in library tab */}
+          {activeTab === 'library' && (
+            <div className="flex gap-2 px-5 pb-2 overflow-x-auto scrollbar-none">
+              {genres.map(g => (
+                <button
+                  key={g}
+                  onClick={() => setFilter(g)}
+                  className={`depth-press px-3 py-1.5 rounded-xl text-xs font-medium whitespace-nowrap ${filter === g ? "bg-primary text-primary-foreground" : "liquid-glass-subtle text-foreground relative z-10"}`}
+                >
+                  {g}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* YouTube Search - Only show in youtube tab */}
+          {activeTab === 'youtube' && (
+            <div className="px-5 pb-2">
+              <div className="liquid-glass rounded-2xl flex items-center gap-2 px-3 py-2">
+                <Search className="w-4 h-4 text-muted-foreground" />
+                <input
+                  value={youtubeSearch}
+                  onChange={e => setYoutubeSearch(e.target.value)}
+                  onKeyPress={e => e.key === 'Enter' && handleYouTubeSearch()}
+                  placeholder="Search YouTube music..."
+                  className="flex-1 bg-transparent text-sm text-foreground placeholder:text-muted-foreground outline-none"
+                />
+                <button
+                  onClick={handleYouTubeSearch}
+                  disabled={isSearching}
+                  className="depth-press px-3 py-1 rounded-xl bg-primary text-primary-foreground text-xs font-medium disabled:opacity-50"
+                >
+                  {isSearching ? 'Searching...' : 'Search'}
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Mini Player in Footer */}
           <AnimatePresence>
@@ -572,7 +752,8 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
           </AnimatePresence>
 
           <div className="flex-1 overflow-y-auto px-5 py-2 space-y-1.5">
-            {filtered.map((track, i) => (
+            {/* Library Tab */}
+            {activeTab === 'library' && filtered.map((track, i) => (
               <motion.button
                 key={track.id}
                 initial={{ opacity: 0, x: -10 }}
@@ -607,6 +788,145 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
                 </div>
               </motion.button>
             ))}
+
+            {/* YouTube Search Results */}
+            {activeTab === 'youtube' && youtubeResults.map((result, i) => {
+              const downloadId = `download-${result.youtubeId}`;
+              const downloadProgress = downloads.get(downloadId);
+              
+              return (
+                <motion.div
+                  key={result.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.02 }}
+                  className="depth-press w-full rounded-2xl p-3 flex items-center gap-3 relative z-10 liquid-glass-subtle"
+                >
+                  <img src={result.thumbnail} alt={result.title} className="w-10 h-10 rounded-xl object-cover" />
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
+                    <p className="text-caption text-muted-foreground truncate">{result.artist}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{result.duration}</span>
+                      <span>•</span>
+                      <span>{result.viewCount} views</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => playYouTubeTrack(result)}
+                      className="depth-press w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center"
+                    >
+                      <Play className="w-3.5 h-3.5 text-primary" />
+                    </button>
+                    <button
+                      onClick={() => downloadTrack(result)}
+                      disabled={downloadProgress?.status === 'downloading'}
+                      className="depth-press w-7 h-7 rounded-full liquid-glass-subtle flex items-center justify-center relative"
+                    >
+                      {downloadProgress?.status === 'downloading' ? (
+                        <div className="w-3.5 h-3.5 relative">
+                          <div className="absolute inset-0 border-2 border-primary/20 rounded-full"></div>
+                          <div 
+                            className="absolute inset-0 border-2 border-primary rounded-full border-t-transparent animate-spin"
+                            style={{ 
+                              clipPath: `polygon(0 0, 50% 0, 50% 100%, 0 100%)`,
+                              transform: `rotate(${(downloadProgress.progress / 100) * 360}deg)`
+                            }}
+                          ></div>
+                        </div>
+                      ) : downloadProgress?.status === 'completed' ? (
+                        <DownloadCloud className="w-3.5 h-3.5 text-green-500" />
+                      ) : downloadProgress?.status === 'error' ? (
+                        <X className="w-3.5 h-3.5 text-destructive" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5 text-foreground" />
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+
+            {/* Trending Music */}
+            {activeTab === 'trending' && trendingMusic.map((result, i) => {
+              const downloadId = `download-${result.youtubeId}`;
+              const downloadProgress = downloads.get(downloadId);
+              
+              return (
+                <motion.div
+                  key={result.id}
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: i * 0.02 }}
+                  className="depth-press w-full rounded-2xl p-3 flex items-center gap-3 relative z-10 liquid-glass-subtle"
+                >
+                  <div className="relative">
+                    <img src={result.thumbnail} alt={result.title} className="w-10 h-10 rounded-xl object-cover" />
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-destructive rounded-full flex items-center justify-center">
+                      <TrendingUp className="w-2 h-2 text-primary-foreground" />
+                    </div>
+                  </div>
+                  <div className="flex-1 text-left min-w-0">
+                    <p className="text-sm font-medium text-foreground truncate">{result.title}</p>
+                    <p className="text-caption text-muted-foreground truncate">{result.artist}</p>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{result.duration}</span>
+                      <span>•</span>
+                      <span>{result.viewCount} views</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => playYouTubeTrack(result)}
+                      className="depth-press w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center"
+                    >
+                      <Play className="w-3.5 h-3.5 text-primary" />
+                    </button>
+                    <button
+                      onClick={() => downloadTrack(result)}
+                      disabled={downloadProgress?.status === 'downloading'}
+                      className="depth-press w-7 h-7 rounded-full liquid-glass-subtle flex items-center justify-center relative"
+                    >
+                      {downloadProgress?.status === 'downloading' ? (
+                        <div className="w-3.5 h-3.5 relative">
+                          <div className="absolute inset-0 border-2 border-primary/20 rounded-full"></div>
+                          <div 
+                            className="absolute inset-0 border-2 border-primary rounded-full border-t-transparent animate-spin"
+                            style={{ 
+                              clipPath: `polygon(0 0, 50% 0, 50% 100%, 0 100%)`,
+                              transform: `rotate(${(downloadProgress.progress / 100) * 360}deg)`
+                            }}
+                          ></div>
+                        </div>
+                      ) : downloadProgress?.status === 'completed' ? (
+                        <DownloadCloud className="w-3.5 h-3.5 text-green-500" />
+                      ) : downloadProgress?.status === 'error' ? (
+                        <X className="w-3.5 h-3.5 text-destructive" />
+                      ) : (
+                        <Download className="w-3.5 h-3.5 text-foreground" />
+                      )}
+                    </button>
+                  </div>
+                </motion.div>
+              );
+            })}
+
+            {/* Empty States */}
+            {activeTab === 'youtube' && youtubeResults.length === 0 && !isSearching && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <Globe className="w-12 h-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground mb-2">Search YouTube for unlimited music</p>
+                <p className="text-xs text-muted-foreground">Type any song or artist name above</p>
+              </div>
+            )}
+
+            {activeTab === 'trending' && trendingMusic.length === 0 && (
+              <div className="flex flex-col items-center justify-center py-20 text-center">
+                <TrendingUp className="w-12 h-12 text-muted-foreground mb-4" />
+                <p className="text-muted-foreground mb-2">Loading trending music...</p>
+              </div>
+            )}
           </div>
 
           {playing && (
