@@ -25,7 +25,7 @@ const COMMAND_REGISTRY: Record<string, string> = {
   home: "/",
 };
 
-const PrimeAIChat = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
+const PrimeAIChat = ({ open, onClose, onOpen }: { open: boolean; onClose: () => void; onOpen?: () => void }) => {
   const [messages, setMessages] = useState<Msg[]>([]);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
@@ -49,8 +49,14 @@ const PrimeAIChat = ({ open, onClose }: { open: boolean; onClose: () => void }) 
         const tag = (e.target as HTMLElement)?.tagName;
         if (tag === "INPUT" || tag === "TEXTAREA" || (e.target as HTMLElement)?.isContentEditable) return;
         e.preventDefault();
-        if (!open) return; // Only trigger voice when chat is open
-        toggleVoiceInput();
+        if (!open) {
+          // Chat is closed, open it first
+          onOpen?.();
+          setTimeout(() => toggleVoiceInput(), 500);
+        } else {
+          // Chat is open, trigger voice input directly
+          toggleVoiceInput();
+        }
       }
     };
     window.addEventListener("keydown", handler);

@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Send, Bookmark } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, Play, Pause } from "lucide-react";
 
 interface FeedPostProps {
   image: string;
@@ -12,14 +12,80 @@ interface FeedPostProps {
   comments: number;
   timeAgo: string;
   index: number;
+  autoPlay?: boolean;
 }
 
-const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes, comments, timeAgo, index }: FeedPostProps) => {
+const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes, comments, timeAgo, index, autoPlay = true }: FeedPostProps) => {
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(likes);
   const [showHeart, setShowHeart] = useState(false);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [isVisible, setIsVisible] = useState(false);
   const lastTap = useRef(0);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const observerRef = useRef<IntersectionObserver | null>(null);
+  
+  const isVideo = mediaType === "video";
+  const isUrl = avatar.startsWith("http");
+
+  // Intersection Observer for auto-play
+  useEffect(() => {
+    if (!isVideo || !autoPlay) return;
+    
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setIsVisible(true);
+            // Auto-play when visible
+            if (videoRef.current && !isPlaying) {
+              videoRef.current.play().catch(() => {
+                // Handle autoplay restrictions
+                console.log('Autoplay blocked, user interaction required');
+              });
+              setIsPlaying(true);
+            }
+          } else {
+            setIsVisible(false);
+            // Pause when not visible
+            if (videoRef.current && isPlaying) {
+              videoRef.current.pause();
+              setIsPlaying(false);
+            }
+          }
+        });
+      },
+      {
+        threshold: 0.5, // Play when 50% visible
+        rootMargin: '0px'
+      }
+    );
+    
+    if (videoRef.current) {
+      observerRef.current.observe(videoRef.current);
+    }
+    
+    return () => {
+      if (observerRef.current && videoRef.current) {
+        observerRef.current.unobserve(videoRef.current);
+      }
+    };
+  }, [isVideo, autoPlay, isPlaying]);
+
+  const togglePlayPause = () => {
+    if (!videoRef.current) return;
+    
+    if (isPlaying) {
+      videoRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      videoRef.current.play().catch(() => {
+        console.log('Play failed, user interaction required');
+      });
+      setIsPlaying(true);
+    }
+  };
 
   const handleDoubleTap = useCallback(() => {
     const now = Date.now();
@@ -35,9 +101,6 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
     setLiked(!liked);
     setLikeCount((c) => (liked ? c - 1 : c + 1));
   };
-
-  const isVideo = mediaType === "video";
-  const isUrl = avatar.startsWith("http");
 
   return (
     <motion.div
@@ -66,7 +129,45 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
 
         <div className="relative" onClick={handleDoubleTap}>
           {isVideo ? (
-            <video src={image} className="w-full aspect-[4/5] object-cover bg-black" controls playsInline />
+            <div className="relative">
+              <video 
+                ref={videoRef}
+                src={image} 
+                className="w-full aspect-[4/5] object-cover bg-black" 
+                playsInline
+                muted={false}
+                loop
+                onClick={togglePlayPause}
+              />
+              
+              {/* Play/Pause overlay */}
+              {!isVisible && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
+                  >
+                    <Play className="w-8 h-8 text-white" />
+                  </motion.div>
+                </div>
+              )}
+              
+              {/* Controls hint */}
+              <div className="absolute bottom-2 right-2">
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.7 }}
+                  className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center"
+                >
+                  {isPlaying ? (
+                    <Pause className="w-4 h-4 text-white" />
+                  ) : (
+                    <Play className="w-4 h-4 text-white" />
+                  )}
+                </motion.div>
+              </div>
+            </div>
           ) : (
             <img src={image} alt={`Post by ${username}`} className="w-full aspect-[4/5] object-cover" loading="lazy" />
           )}

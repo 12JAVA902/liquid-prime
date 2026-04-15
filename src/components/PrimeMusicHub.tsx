@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { X, Music, Search, Play, Pause, SkipForward, SkipBack, Youtube } from "lucide-react";
+import { X, Music, Search, Play, Pause, SkipForward, SkipBack, Youtube, Download, Heart, Volume2 } from "lucide-react";
 
 interface Track {
   id: number;
@@ -9,6 +9,14 @@ interface Track {
   duration: string;
   genre: string;
   youtubeId: string;
+  saved?: boolean;
+  playCount?: number;
+  lastPlayed?: string;
+}
+
+interface SavedTrack extends Track {
+  id: string;
+  addedAt: string;
 }
 
 const tracks: Track[] = [
@@ -49,9 +57,95 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
   const [playing, setPlaying] = useState<Track | null>(null);
   const [filter, setFilter] = useState("All");
   const [showPlayer, setShowPlayer] = useState(false);
+  const [savedTracks, setSavedTracks] = useState<SavedTrack[]>([]);
+  const [volume, setVolume] = useState(1);
+  const [isShuffled, setIsShuffled] = useState(false);
+  const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('off');
+  const playerRef = useRef<HTMLIFrameElement>(null);
 
-  const genres = ["All", "Pop", "Rock", "Hip-Hop", "Funk", "Latin"];
-  const filtered = tracks.filter(t =>
+  // IndexedDB setup
+  useEffect(() => {
+    const initDB = async () => {
+      if (typeof window === 'undefined' || !window.indexedDB) return;
+      
+      const request = indexedDB.open('PrimeMusicDB', 1);
+      
+      request.onerror = () => console.error('IndexedDB error');
+      
+      request.onsuccess = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        loadSavedTracks(db);
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains('savedTracks')) {
+          const store = db.createObjectStore('savedTracks', { keyPath: 'id' });
+          store.createIndex('addedAt', 'addedAt', { unique: false });
+        }
+      };
+    };
+    
+    initDB();
+  }, []);
+  
+  const loadSavedTracks = (db: IDBDatabase) => {
+    const transaction = db.transaction(['savedTracks'], 'readonly');
+    const store = transaction.objectStore('savedTracks');
+    const request = store.getAll();
+    
+    request.onsuccess = () => {
+      setSavedTracks(request.result || []);
+    };
+  };
+  
+  const saveTrack = (track: Track) => {
+    if (typeof window === 'undefined' || !window.indexedDB) return;
+    
+    const request = indexedDB.open('PrimeMusicDB', 1);
+    request.onsuccess = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      const transaction = db.transaction(['savedTracks'], 'readwrite');
+      const store = transaction.objectStore('savedTracks');
+      
+      const savedTrack: SavedTrack = {
+        ...track,
+        id: `track-${track.id}`,
+        addedAt: new Date().toISOString(),
+        playCount: (track.playCount || 0) + 1,
+        lastPlayed: new Date().toISOString()
+      };
+      
+      store.put(savedTrack);
+      
+      transaction.oncomplete = () => {
+        loadSavedTracks(db);
+      };
+    };
+  };
+  
+  const removeSavedTrack = (trackId: number) => {
+    if (typeof window === 'undefined' || !window.indexedDB) return;
+    
+    const request = indexedDB.open('PrimeMusicDB', 1);
+    request.onsuccess = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      const transaction = db.transaction(['savedTracks'], 'readwrite');
+      const store = transaction.objectStore('savedTracks');
+      store.delete(`track-${trackId}`);
+      
+      transaction.oncomplete = () => {
+        loadSavedTracks(db);
+      };
+    };
+  };
+  
+  const isTrackSaved = (trackId: number) => {
+    return savedTracks.some(t => t.id === `track-${trackId}`);
+  };
+
+  const genres = ["All", "Pop", "Rock", "Hip-Hop", "Funk", "Latin", "Saved"];
+  const filtered = filter === "Saved" ? savedTracks : tracks.filter(t =>
     (filter === "All" || t.genre === filter) &&
     (t.title.toLowerCase().includes(search.toLowerCase()) || t.artist.toLowerCase().includes(search.toLowerCase()))
   );
@@ -59,20 +153,35 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
   const playTrack = (track: Track) => {
     setPlaying(track);
     setShowPlayer(true);
+    saveTrack(track);
   };
 
   const nextTrack = () => {
     if (!playing) return;
-    const idx = tracks.findIndex(t => t.id === playing.id);
-    const next = tracks[(idx + 1) % tracks.length];
-    playTrack(next);
+    const currentTracks = filter === "Saved" ? savedTracks : tracks;
+    const idx = currentTracks.findIndex(t => t.id === playing.id);
+    let nextIndex = (idx + 1) % currentTracks.length;
+    
+    if (isShuffled) {
+      nextIndex = Math.floor(Math.random() * currentTracks.length);
+    }
+    
+    const next = currentTracks[nextIndex];
+    if (next) playTrack(next);
   };
 
   const prevTrack = () => {
     if (!playing) return;
-    const idx = tracks.findIndex(t => t.id === playing.id);
-    const prev = tracks[(idx - 1 + tracks.length) % tracks.length];
-    playTrack(prev);
+    const currentTracks = filter === "Saved" ? savedTracks : tracks;
+    const idx = currentTracks.findIndex(t => t.id === playing.id);
+    const prev = currentTracks[(idx - 1 + currentTracks.length) % currentTracks.length];
+    if (prev) playTrack(prev);
+  };
+  
+  const toggleRepeat = () => {
+    const modes: Array<'off' | 'one' | 'all'> = ['off', 'one', 'all'];
+    const currentIndex = modes.indexOf(repeatMode);
+    setRepeatMode(modes[(currentIndex + 1) % modes.length]);
   };
 
   return (
@@ -132,11 +241,12 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
               >
                 <div className="rounded-2xl overflow-hidden aspect-video mb-2">
                   <iframe
+                    ref={playerRef}
                     key={playing.youtubeId}
-                    src={`https://www.youtube.com/embed/${playing.youtubeId}?autoplay=1&rel=0`}
+                    src={`https://www.youtube.com/embed/${playing.youtubeId}?autoplay=1&rel=0&controls=1&modestbranding=1`}
                     title={playing.title}
                     className="w-full h-full"
-                    allow="autoplay; encrypted-media"
+                    allow="autoplay; encrypted-media; fullscreen"
                     allowFullScreen
                   />
                 </div>
@@ -162,6 +272,12 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
                   <p className="text-caption text-muted-foreground truncate">{track.artist}</p>
                 </div>
                 <div className="flex items-center gap-2">
+                  <button
+                    onClick={e => { e.stopPropagation(); isTrackSaved(track.id) ? removeSavedTrack(track.id) : saveTrack(track); }}
+                    className="depth-press w-7 h-7 rounded-full liquid-glass-subtle flex items-center justify-center"
+                  >
+                    <Heart className={`w-3.5 h-3.5 ${isTrackSaved(track.id) ? "text-destructive fill-current" : "text-foreground"}`} />
+                  </button>
                   <Youtube className="w-3 h-3 text-destructive" />
                   <span className="text-caption text-muted-foreground">{track.duration}</span>
                 </div>
@@ -183,7 +299,19 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
                   <p className="text-sm font-medium text-foreground truncate">{playing.title}</p>
                   <p className="text-caption text-muted-foreground">{playing.artist}</p>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={() => setIsShuffled(!isShuffled)} 
+                    className={`depth-press w-8 h-8 rounded-full flex items-center justify-center ${isShuffled ? "bg-primary" : "liquid-glass-subtle"}`}
+                  >
+                    <span className="text-xs font-bold text-foreground">🔀</span>
+                  </button>
+                  <button 
+                    onClick={toggleRepeat} 
+                    className={`depth-press w-8 h-8 rounded-full flex items-center justify-center ${repeatMode !== 'off' ? "bg-primary" : "liquid-glass-subtle"}`}
+                  >
+                    <span className="text-xs font-bold text-foreground">{repeatMode === 'one' ? '🔂' : '🔁'}</span>
+                  </button>
                   <button className="depth-press" onClick={prevTrack}><SkipBack className="w-5 h-5 text-foreground" /></button>
                   <button
                     className="depth-press w-10 h-10 rounded-full bg-primary flex items-center justify-center"

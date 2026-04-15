@@ -3,6 +3,7 @@ import TopNavBar from "@/components/TopNavBar";
 import GlassTabBar from "@/components/GlassTabBar";
 import StoriesBar from "@/components/StoriesBar";
 import FloatingActions from "@/components/FloatingActions";
+import FloatingOrb from "@/components/FloatingOrb";
 import FeedPost from "@/components/FeedPost";
 import LiquidBackground from "@/components/LiquidBackground";
 import { supabase } from "@/integrations/supabase/client";
@@ -73,6 +74,7 @@ const Index = () => {
       </main>
 
       <FloatingActions />
+      <FloatingOrb />
       <GlassTabBar />
     </div>
   );

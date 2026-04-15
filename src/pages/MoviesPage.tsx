@@ -42,9 +42,17 @@ const MoviesPage = () => {
       const res = await fetch(`${FUNC_URL}?endpoint=${endpoint}`, {
         headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      return data.results || [];
-    } catch { return []; }
+      if (!data || !Array.isArray(data.results)) {
+        console.warn('Invalid TMDB response format:', data);
+        return [];
+      }
+      return data.results.filter((movie: any) => movie && movie.id && movie.title);
+    } catch (error) {
+      console.error('TMDB fetch error:', error);
+      return [];
+    }
   };
 
   useEffect(() => {
