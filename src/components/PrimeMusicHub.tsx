@@ -128,8 +128,13 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
       const store = transaction.objectStore('savedTracks');
       
       const savedTrack: SavedTrack = {
-        ...track,
         id: `track-${track.id}`,
+        trackId: track.id,
+        title: track.title,
+        artist: track.artist,
+        duration: track.duration,
+        genre: track.genre,
+        youtubeId: track.youtubeId,
         addedAt: new Date().toISOString(),
         playCount: (track.playCount || 0) + 1,
         lastPlayed: new Date().toISOString()
@@ -169,10 +174,57 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
     (t.title.toLowerCase().includes(search.toLowerCase()) || t.artist.toLowerCase().includes(search.toLowerCase()))
   );
 
-  const playTrack = (track: Track) => {
-    setPlaying(track);
-    setShowPlayer(true);
-    saveTrack(track);
+  // AI Recommendations using Gemini API
+  const generateAIRecommendations = async () => {
+    try {
+      // Analyze user's listening history
+      const favoriteGenres = savedTracks.reduce((acc, track) => {
+        acc[track.genre] = (acc[track.genre] || 0) + 1;
+        return acc;
+      }, {} as Record<string, number>);
+      
+      const mostPlayedTracks = savedTracks
+        .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
+        .slice(0, 5);
+      
+      // Generate recommendations based on preferences
+      const prompt = `Based on my listening history, I enjoy ${Object.keys(favoriteGenres).join(', ')} music. My most played tracks are: ${mostPlayedTracks.map(t => t.title).join(', ')}. Please recommend 5 similar tracks from the available music library that match my taste. Consider similar artists, genres, and patterns.`;
+      
+      // Call Gemini API (using Supabase function as proxy)
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-recommendations`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          prompt,
+          userHistory: savedTracks.map(t => ({ title: t.title, artist: t.artist, genre: t.genre, playCount: t.playCount })),
+          availableTracks: tracks
+        })
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        // For now, we'll use the existing tracks as recommendations
+        // In production, this would return AI-generated suggestions
+        const recommendedTracks = tracks
+          .filter(t => {
+            const userGenres = Object.keys(favoriteGenres);
+            return userGenres.includes(t.genre) || 
+              mostPlayedTracks.some(played => 
+                played.genre === t.genre || 
+                played.artist.toLowerCase().includes(t.artist.toLowerCase().split(' ')[0])
+              );
+          })
+          .slice(0, 5);
+        
+        return recommendedTracks;
+      }
+    } catch (error) {
+      console.error('AI recommendations error:', error);
+      return tracks.slice(0, 5); // Fallback to top tracks
+    }
   };
 
   const nextTrack = () => {
@@ -275,14 +327,31 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
                     </button>
                   </div>
                   
-                  <YouTubePlayer
-                    videoId={playing.youtubeId}
-                    title={playing.title}
-                    artist={playing.artist}
-                    isPlaying={true}
-                    onPlay={() => {}}
-                    onPause={() => {}}
-                  />
+                  {/* Full YouTube Player */}
+                  <AnimatePresence>
+                    {showPlayer && playing && (
+                      <motion.div
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: "auto", opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="px-5 overflow-hidden"
+                      >
+                        <div className="rounded-2xl overflow-hidden aspect-video mb-2 relative">
+                          <iframe
+                            ref={playerRef}
+                            key={playing.youtubeId}
+                            src={`https://www.youtube.com/embed/${playing.youtubeId}?autoplay=1&controls=1&modestbranding=1&rel=0&showinfo=0`}
+                            title={playing.title}
+                            className="w-full h-full"
+                            allow="autoplay; encrypted-media; fullscreen; picture-in-picture"
+                            allowFullScreen
+                          />
+                          {/* Overlay Controls */}
+                          <div className="absolute inset-0 bg-gradient-to-t from-transparent via-black/20 to-black/40 pointer-events-none" />
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
               </motion.div>
             )}

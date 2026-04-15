@@ -17,6 +17,21 @@ interface Movie {
   vote_average: number;
   release_date: string;
   genre_ids: number[];
+  saved?: boolean;
+  addedAt?: string;
+}
+
+interface SavedMovie {
+  id: string;
+  movieId: number;
+  title: string;
+  overview: string;
+  poster_path: string | null;
+  backdrop_path: string | null;
+  vote_average: number;
+  release_date: string;
+  genre_ids: number[];
+  addedAt: string;
 }
 
 const genreMap: Record<number, string> = {
@@ -34,32 +49,96 @@ const MoviesPage = () => {
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
+  const [savedMovies, setSavedMovies] = useState<SavedMovie[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"trending" | "top_rated" | "upcoming">("trending");
 
-  const fetchMovies = async (endpoint: string) => {
-    setLoading(true);
-    setError(null);
-    try {
-      const res = await fetch(`${FUNC_URL}?endpoint=${endpoint}`, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-      });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      const data = await res.json();
-      if (!data || !Array.isArray(data.results)) {
-        console.warn('Invalid TMDB response format:', data);
-        setError('Failed to load movies');
-        return [];
-      }
-      return data.results.filter((movie: any) => movie && movie.id && movie.title);
-    } catch (error) {
-      console.error('TMDB fetch error:', error);
-      setError('Network error. Please try again.');
-      return [];
-    } finally {
-      setLoading(false);
-    }
+  // IndexedDB setup for saved movies
+  useEffect(() => {
+    const initDB = async () => {
+      if (typeof window === 'undefined' || !window.indexedDB) return;
+      
+      const request = indexedDB.open('PrimeMoviesDB', 1);
+      
+      request.onerror = () => console.error('IndexedDB error');
+      
+      request.onsuccess = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        loadSavedMovies(db);
+      };
+      
+      request.onupgradeneeded = (event) => {
+        const db = (event.target as IDBOpenDBRequest).result;
+        if (!db.objectStoreNames.contains('savedMovies')) {
+          const store = db.createObjectStore('savedMovies', { keyPath: 'id' });
+          store.createIndex('movieId', 'movieId', { unique: false });
+          store.createIndex('addedAt', 'addedAt', { unique: false });
+        }
+      };
+    };
+    
+    initDB();
+  }, []);
+  
+  const loadSavedMovies = (db: IDBDatabase) => {
+    const transaction = db.transaction(['savedMovies'], 'readonly');
+    const store = transaction.objectStore('savedMovies');
+    const request = store.getAll();
+    
+    request.onsuccess = () => {
+      setSavedMovies(request.result || []);
+    };
+  };
+  
+  const saveMovie = (movie: Movie) => {
+    if (typeof window === 'undefined' || !window.indexedDB) return;
+    
+    const request = indexedDB.open('PrimeMoviesDB', 1);
+    request.onsuccess = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      const transaction = db.transaction(['savedMovies'], 'readwrite');
+      const store = transaction.objectStore('savedMovies');
+      
+      const savedMovie: SavedMovie = {
+        id: `movie-${movie.id}`,
+        movieId: movie.id,
+        title: movie.title,
+        overview: movie.overview,
+        poster_path: movie.poster_path,
+        backdrop_path: movie.backdrop_path,
+        vote_average: movie.vote_average,
+        release_date: movie.release_date,
+        genre_ids: movie.genre_ids,
+        addedAt: new Date().toISOString()
+      };
+      
+      store.put(savedMovie);
+      
+      transaction.oncomplete = () => {
+        loadSavedMovies(db);
+      };
+    };
+  };
+  
+  const removeSavedMovie = (movieId: number) => {
+    if (typeof window === 'undefined' || !window.indexedDB) return;
+    
+    const request = indexedDB.open('PrimeMoviesDB', 1);
+    request.onsuccess = (event) => {
+      const db = (event.target as IDBOpenDBRequest).result;
+      const transaction = db.transaction(['savedMovies'], 'readwrite');
+      const store = transaction.objectStore('savedMovies');
+      store.delete(`movie-${movieId}`);
+      
+      transaction.oncomplete = () => {
+        loadSavedMovies(db);
+      };
+    };
+  };
+  
+  const isMovieSaved = (movieId: number) => {
+    return savedMovies.some(m => m.movieId === movieId);
   };
 
   useEffect(() => {
@@ -152,8 +231,6 @@ const MoviesPage = () => {
           ))}
         </div>
       ) : !error && (
-        <div className="flex justify-center py-20 relative z-10"><Loader2 className="w-8 h-8 text-primary animate-spin" /></div>
-      ) : (
         <div className="px-4 grid grid-cols-2 gap-3 relative z-10">
           {movies.map((movie, i) => (
             <motion.button key={movie.id} initial={{ opacity: 0, y: 15 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.03 }}
@@ -174,6 +251,15 @@ const MoviesPage = () => {
               <button onClick={e => { e.stopPropagation(); toggleFav(movie.id); }}
                 className="absolute top-2 right-2 z-10 w-7 h-7 rounded-full liquid-glass flex items-center justify-center">
                 <Heart className={`w-3.5 h-3.5 ${favorites.has(movie.id) ? "text-destructive fill-current" : "text-foreground"}`} />
+              </button>
+              <button
+                onClick={() => saveMovie(movie)}
+                className="absolute bottom-2 right-2 z-10 w-7 h-7 rounded-full liquid-glass-subtle flex items-center justify-center"
+                disabled={isMovieSaved(movie.id)}
+              >
+                <span className={`text-xs font-medium ${isMovieSaved(movie.id) ? "text-destructive" : "text-primary"}`}>
+                  {isMovieSaved(movie.id) ? "Saved" : "Save"}
+                </span>
               </button>
             </motion.button>
           ))}

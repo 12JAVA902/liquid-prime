@@ -7,6 +7,8 @@ import ReactMarkdown from "react-markdown";
 
 const PrimeOrb = lazy(() => import("./PrimeOrb"));
 
+const FloatingOrb = lazy(() => import("./FloatingOrb"));
+
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/prime-ai-chat`;
 
 type Msg = { role: "user" | "assistant"; content: string };
