@@ -97,7 +97,7 @@ const FloatingOrb = () => {
     if (!aiOpen) {
       setAiOpen(true);
       setTimeout(() => {
-        const micButton = document.querySelector('[data-voice-trigger]');
+        const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
         if (micButton) micButton.click();
       }, 300);
     }
