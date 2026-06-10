@@ -117,7 +117,7 @@ const FloatingOrb = () => {
     <>
       {/* Floating Orb Assistant */}
       <motion.div
-        className="fixed bottom-24 left-4 z-[55]"
+        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[55]"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
