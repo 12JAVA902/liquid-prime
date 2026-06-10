@@ -39,9 +39,14 @@ const TopNavBar = () => {
           className="flex items-center gap-2"
           animate={collapsed ? { justifyContent: "center", flex: 1 } : { justifyContent: "flex-start", flex: 0 }}
         >
-          <div className="w-7 h-7 rounded-lg liquid-glass flex items-center justify-center">
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new CustomEvent('prime:openOrb'))}
+            className="w-7 h-7 rounded-lg liquid-glass flex items-center justify-center depth-press"
+            aria-label="Open Heiji AI"
+          >
             <span className="text-sm font-bold text-primary relative z-10">P</span>
-          </div>
+          </button>
           <motion.h1
             className="text-headline text-foreground"
             animate={collapsed ? { fontSize: "0rem", width: 0, opacity: 0 } : { fontSize: "1.15rem", width: "auto", opacity: 1 }}
