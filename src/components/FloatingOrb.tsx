@@ -45,10 +45,20 @@ const FloatingOrb = () => {
       }
     };
     
+    const handleOpenEvent = () => {
+      setAiOpen(true);
+      setTimeout(() => {
+        const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
+        micButton?.click();
+      }, 300);
+    };
+
     window.addEventListener('keydown', handleKeyPress);
-    
+    window.addEventListener('prime:openOrb', handleOpenEvent as EventListener);
+
     return () => {
       window.removeEventListener('keydown', handleKeyPress);
+      window.removeEventListener('prime:openOrb', handleOpenEvent as EventListener);
     };
   }, [aiOpen]);
   
