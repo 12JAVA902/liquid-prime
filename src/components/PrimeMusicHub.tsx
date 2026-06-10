@@ -387,6 +387,11 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
     }
   };
 
+  const playTrack = (track: Track) => {
+    setPlaying(track);
+    setListeningHistory(prev => [{ id: `${track.id}-${Date.now()}`, trackId: track.id, timestamp: new Date().toISOString() }, ...prev].slice(0, 50));
+  };
+
   const nextTrack = () => {
     if (!playing) return;
     const currentTracks = filter === "Saved" ? savedTracks : tracks;
