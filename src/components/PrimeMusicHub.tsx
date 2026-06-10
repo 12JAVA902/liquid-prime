@@ -387,10 +387,14 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
     }
   };
 
-  const playTrack = (track: Track) => {
-    setPlaying(track);
-    setListeningHistory(prev => [{ id: `${track.id}-${Date.now()}`, trackId: track.id, timestamp: new Date().toISOString() }, ...prev].slice(0, 50));
+  const playTrack = (track: Track | SavedTrack) => {
+    const t: Track = 'trackId' in track
+      ? { id: track.trackId, title: track.title, artist: track.artist, duration: track.duration, genre: track.genre, youtubeId: track.youtubeId }
+      : track;
+    setPlaying(t);
+    setListeningHistory(prev => [{ id: `${t.id}-${Date.now()}`, trackId: t.id, timestamp: new Date().toISOString() }, ...prev].slice(0, 50));
   };
+
 
   const nextTrack = () => {
     if (!playing) return;
