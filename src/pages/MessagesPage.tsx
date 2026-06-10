@@ -250,118 +250,107 @@ const MessagesPage = () => {
       sender_id: user.id,
       receiver_id: activeChat.user_id,
       content,
+    });
+  };
 
   if (activeChat) {
     return (
-      {/* Incoming Call Modal */}
-      <AnimatePresence>
-        {incomingCall && !isInCall && (
-          <IncomingCallModal
-            isOpen={true}
-            callerName={incomingCall.caller.display_name || incomingCall.caller.username || 'Unknown'}
-            callerAvatar={incomingCall.caller.user_metadata?.avatar_url}
-            onJoin={acceptCall}
-            onDecline={declineCall}
-          />
-        )}
-      </AnimatePresence>
-      
-      {/* Active Call View */}
-      {isInCall && activeChat && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 z-[65] bg-background flex flex-col"
-        >
-          <div className="liquid-glass-elevated safe-area-top">
-            <div className="flex items-center justify-between px-5 py-4">
-              <div className="flex items-center gap-2">
-                <Video className="w-5 h-5 text-primary" />
-                <span className="text-headline text-foreground text-base">Video Call</span>
-              </div>
-              <button onClick={endCall} className="depth-press w-10 h-10 rounded-full bg-destructive flex items-center justify-center">
-                <PhoneOff className="w-5 h-5 text-destructive-foreground" />
-              </button>
-            </div>
-          </div>
-          
-          {/* Remote Video */}
-          <div className="flex-1 relative">
-            <video
-              id="remote-video"
-              autoPlay
-              playsInline
-              className="w-full h-full object-cover bg-black"
+      <>
+        {/* Incoming Call Modal */}
+        <AnimatePresence>
+          {incomingCall && !isInCall && (
+            <IncomingCallModal
+              isOpen={true}
+              callerName={incomingCall.caller.display_name || incomingCall.caller.username || 'Unknown'}
+              onJoin={acceptCall}
+              onDecline={declineCall}
             />
-            {/* Local Video */}
-            <div className="absolute bottom-4 right-4 w-32 h-48 rounded-2xl overflow-hidden liquid-glass">
-              <video
-                id="local-video"
-                autoPlay
-                muted
-                playsInline
-                className="w-full h-full object-cover mirror"
-              />
-            </div>
-          </div>
-        </motion.div>
-      )}
-      
-      {/* Chat View */}
-      {!isInCall && activeChat && (
-        <div className="min-h-screen bg-background flex flex-col">
-          <div className="liquid-glass-elevated safe-area-top">
-            <div className="flex items-center gap-3 px-4 py-3 relative z-10">
-              <button onClick={() => setActiveChat(null)} className="depth-press">
-                <ArrowLeft className="w-5 h-5 text-foreground" />
-              </button>
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-semibold">
-                {(activeChat.display_name || "U")[0].toUpperCase()}
-              </div>
-              <span className="text-headline text-foreground text-sm flex-1">{activeChat.display_name || activeChat.username || "User"}</span>
-              <button className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
-                <Phone className="w-4 h-4 text-foreground" />
-              </button>
-              <button onClick={() => navigate(`/call/${activeChat.user_id}`)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
-                <Video className="w-4 h-4 text-foreground" />
-              </button>
-            </div>
-          </div>
+          )}
+        </AnimatePresence>
 
-          <div className="flex-1 overflow-y-auto p-4 space-y-3">
-            {messages.length === 0 && (
-              <div className="text-center text-muted-foreground text-sm py-10">No messages yet. Say hello!</div>
-            )}
-            {messages.map((m) => (
-              <div key={m.id} className={`flex ${m.sender_id === user?.id ? "justify-end" : "justify-start"}`}>
-                <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
-                  m.sender_id === user?.id
-                    ? "bg-primary text-primary-foreground"
-                    : "liquid-glass text-foreground relative z-10"
-                }`}>
-                  {m.content}
+        {/* Active Call View */}
+        {isInCall && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 z-[65] bg-background flex flex-col"
+          >
+            <div className="liquid-glass-elevated safe-area-top">
+              <div className="flex items-center justify-between px-5 py-4">
+                <div className="flex items-center gap-2">
+                  <Video className="w-5 h-5 text-primary" />
+                  <span className="text-headline text-foreground text-base">Video Call</span>
                 </div>
+                <button onClick={endCall} className="depth-press w-10 h-10 rounded-full bg-destructive flex items-center justify-center">
+                  <PhoneOff className="w-5 h-5 text-destructive-foreground" />
+                </button>
               </div>
-            ))}
-            <div ref={bottomRef} />
-          </div>
+            </div>
+            <div className="flex-1 relative">
+              <video id="remote-video" autoPlay playsInline className="w-full h-full object-cover bg-black" />
+              <div className="absolute bottom-4 right-4 w-32 h-48 rounded-2xl overflow-hidden liquid-glass">
+                <video id="local-video" autoPlay muted playsInline className="w-full h-full object-cover" />
+              </div>
+            </div>
+          </motion.div>
+        )}
 
-          <div className="px-4 py-3 safe-area-bottom">
-            <div className="flex gap-2">
-              <input
-                value={msg}
-                onChange={(e) => setMsg(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                placeholder="Message..."
-                className="flex-1 px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none"
-              />
-              <button onClick={sendMessage} className="depth-press w-11 h-11 rounded-2xl bg-primary flex items-center justify-center">
-                <Send className="w-4 h-4 text-primary-foreground" />
-              </button>
+        {/* Chat View */}
+        {!isInCall && (
+          <div className="min-h-screen bg-background flex flex-col">
+            <div className="liquid-glass-elevated safe-area-top">
+              <div className="flex items-center gap-3 px-4 py-3 relative z-10">
+                <button onClick={() => setActiveChat(null)} className="depth-press">
+                  <ArrowLeft className="w-5 h-5 text-foreground" />
+                </button>
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-semibold">
+                  {(activeChat.display_name || "U")[0].toUpperCase()}
+                </div>
+                <span className="text-headline text-foreground text-sm flex-1">{activeChat.display_name || activeChat.username || "User"}</span>
+                <button onClick={() => startCall(activeChat)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
+                  <Phone className="w-4 h-4 text-foreground" />
+                </button>
+                <button onClick={() => startCall(activeChat)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
+                  <Video className="w-4 h-4 text-foreground" />
+                </button>
+              </div>
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {messages.length === 0 && (
+                <div className="text-center text-muted-foreground text-sm py-10">No messages yet. Say hello!</div>
+              )}
+              {messages.map((m) => (
+                <div key={m.id} className={`flex ${m.sender_id === user?.id ? "justify-end" : "justify-start"}`}>
+                  <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
+                    m.sender_id === user?.id
+                      ? "bg-primary text-primary-foreground"
+                      : "liquid-glass text-foreground relative z-10"
+                  }`}>
+                    {m.content}
+                  </div>
+                </div>
+              ))}
+              <div ref={bottomRef} />
+            </div>
+
+            <div className="px-4 py-3 safe-area-bottom">
+              <div className="flex gap-2">
+                <input
+                  value={msg}
+                  onChange={(e) => setMsg(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && sendMessage()}
+                  placeholder="Message..."
+                  className="flex-1 px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none"
+                />
+                <button onClick={sendMessage} className="depth-press w-11 h-11 rounded-2xl bg-primary flex items-center justify-center">
+                  <Send className="w-4 h-4 text-primary-foreground" />
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
+      </>
     );
   }
 
