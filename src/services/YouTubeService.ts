@@ -150,7 +150,7 @@ class YouTubeService {
         }
       }
 
-      return new Blob(chunks, { type: 'audio/mpeg' });
+      return new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
     } catch (error) {
       console.error('Download error:', error);
       throw error;
