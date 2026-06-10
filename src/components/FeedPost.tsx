@@ -135,7 +135,7 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
                 src={image} 
                 className="w-full aspect-[4/5] object-cover bg-black" 
                 playsInline
-                muted={false}
+                muted
                 loop
                 onClick={togglePlayPause}
               />
