@@ -30,14 +30,14 @@ const FloatingOrb = () => {
           setAiOpen(true);
           setTimeout(() => {
             // Then trigger voice input
-            const micButton = document.querySelector('[data-voice-trigger]');
+            const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
             if (micButton) {
               micButton.click();
             }
           }, 300);
         } else {
           // Toggle voice input if already open
-          const micButton = document.querySelector('[data-voice-trigger]');
+          const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
           if (micButton) {
             micButton.click();
           }
