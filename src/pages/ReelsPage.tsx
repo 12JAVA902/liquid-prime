@@ -118,7 +118,16 @@ const ReelsPage = () => {
       ) : (
         <div ref={containerRef} className="h-screen overflow-y-scroll snap-y snap-mandatory scrollbar-none">
           {reels.map((reel, i) => (
-            <div key={reel.id} data-index={i} className="h-screen w-full snap-start snap-always relative flex items-center justify-center bg-black">
+            <div
+              key={reel.id}
+              data-index={i}
+              className="h-screen w-full snap-start snap-always relative flex items-center justify-center bg-black"
+              onClick={() => {
+                const v = videoRefs.current.get(i);
+                if (!v) return;
+                if (v.paused) v.play().catch(() => {}); else v.pause();
+              }}
+            >
               {reel.video_url && (
                 <video
                   ref={el => { if (el) videoRefs.current.set(i, el); }}

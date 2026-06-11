@@ -87,7 +87,7 @@ const CallPage = () => {
     const channelName = `call-${userId}`;
     channelRef.current = supabase
       .channel(channelName)
-      .on('broadcast', { event: 'signaling' }, handleSignalingMessage)
+      .on('broadcast' as any, { event: 'signaling' }, handleSignalingMessage)
       .subscribe();
       
     webrtcRef.current.setSignalingChannel({

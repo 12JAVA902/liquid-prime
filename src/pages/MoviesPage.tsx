@@ -141,9 +141,26 @@ const MoviesPage = () => {
     return savedMovies.some(m => m.movieId === movieId);
   };
 
+  const fetchMovies = async (endpoint: string): Promise<Movie[]> => {
+    const res = await fetch(`${FUNC_URL}?endpoint=${encodeURIComponent(endpoint)}`, {
+      headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.error || `Request failed (${res.status})`);
+    }
+    const data = await res.json();
+    return data.results || [];
+  };
+
   useEffect(() => {
     const endpoints: Record<string, string> = { trending: "trending/movie/week", top_rated: "movie/top_rated", upcoming: "movie/upcoming" };
-    fetchMovies(endpoints[tab]).then(r => { setTrending(r); });
+    setLoading(true);
+    setError(null);
+    fetchMovies(endpoints[tab])
+      .then(r => setTrending(r))
+      .catch(err => setError(err.message?.includes("TMDB_API_KEY") ? "Movie Hub unavailable — TMDB API key missing." : "Couldn't load movies. Tap retry."))
+      .finally(() => setLoading(false));
   }, [tab]);
 
   useEffect(() => {

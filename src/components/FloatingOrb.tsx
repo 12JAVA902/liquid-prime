@@ -30,14 +30,14 @@ const FloatingOrb = () => {
           setAiOpen(true);
           setTimeout(() => {
             // Then trigger voice input
-            const micButton = document.querySelector('[data-voice-trigger]');
+            const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
             if (micButton) {
               micButton.click();
             }
           }, 300);
         } else {
           // Toggle voice input if already open
-          const micButton = document.querySelector('[data-voice-trigger]');
+          const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
           if (micButton) {
             micButton.click();
           }
@@ -45,10 +45,20 @@ const FloatingOrb = () => {
       }
     };
     
+    const handleOpenEvent = () => {
+      setAiOpen(true);
+      setTimeout(() => {
+        const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
+        micButton?.click();
+      }, 300);
+    };
+
     window.addEventListener('keydown', handleKeyPress);
-    
+    window.addEventListener('prime:openOrb', handleOpenEvent as EventListener);
+
     return () => {
       window.removeEventListener('keydown', handleKeyPress);
+      window.removeEventListener('prime:openOrb', handleOpenEvent as EventListener);
     };
   }, [aiOpen]);
   
@@ -97,7 +107,7 @@ const FloatingOrb = () => {
     if (!aiOpen) {
       setAiOpen(true);
       setTimeout(() => {
-        const micButton = document.querySelector('[data-voice-trigger]');
+        const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
         if (micButton) micButton.click();
       }, 300);
     }
@@ -107,7 +117,7 @@ const FloatingOrb = () => {
     <>
       {/* Floating Orb Assistant */}
       <motion.div
-        className="fixed bottom-24 left-4 z-[55]"
+        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[55]"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
