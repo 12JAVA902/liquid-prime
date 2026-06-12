@@ -19,6 +19,7 @@ import SearchPage from "./pages/SearchPage";
 import CreatePostPage from "./pages/CreatePostPage";
 import SportsPage from "./pages/SportsPage";
 import MoviesPage from "./pages/MoviesPage";
+import DiscoverPage from "./pages/DiscoverPage";
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
             <Route path="/call/:userId" element={<ProtectedRoute><CallPage /></ProtectedRoute>} />
             <Route path="/sports" element={<ProtectedRoute><SportsPage /></ProtectedRoute>} />
             <Route path="/movies" element={<ProtectedRoute><MoviesPage /></ProtectedRoute>} />
+            <Route path="/discover" element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
