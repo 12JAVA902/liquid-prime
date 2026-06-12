@@ -1,6 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Send, Bookmark, Play, Pause } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, Play, Pause, Loader2 } from "lucide-react";
 
 interface FeedPostProps {
   image: string;
@@ -22,6 +22,7 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
   const [showHeart, setShowHeart] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(true);
   const lastTap = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
@@ -137,35 +138,35 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
                 playsInline
                 muted
                 loop
+                preload="auto"
+                onLoadStart={() => setVideoLoading(true)}
+                onCanPlay={() => setVideoLoading(false)}
+                onWaiting={() => setVideoLoading(true)}
+                onPlaying={() => setVideoLoading(false)}
                 onClick={togglePlayPause}
               />
-              
-              {/* Play/Pause overlay */}
-              {!isVisible && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
-                  >
-                    <Play className="w-8 h-8 text-white" />
-                  </motion.div>
+
+              {/* Loading spinner */}
+              {videoLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
+                  <Loader2 className="w-10 h-10 text-white animate-spin" />
                 </div>
               )}
-              
+
+              {/* Play overlay when paused & not visible */}
+              {!isVisible && !videoLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                  <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Play className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+              )}
+
               {/* Controls hint */}
               <div className="absolute bottom-2 right-2">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.7 }}
-                  className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center"
-                >
-                  {isPlaying ? (
-                    <Pause className="w-4 h-4 text-white" />
-                  ) : (
-                    <Play className="w-4 h-4 text-white" />
-                  )}
-                </motion.div>
+                <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center opacity-70">
+                  {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white" />}
+                </div>
               </div>
             </div>
           ) : (
