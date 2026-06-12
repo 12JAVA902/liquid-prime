@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Trophy, ArrowUpDown, Timer, Zap } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -84,6 +84,35 @@ type Tab = "live" | "epl" | "laliga" | "ucl" | "nba" | "f1" | "transfers";
 const SportsPage = () => {
   const navigate = useNavigate();
   const [tab, setTab] = useState<Tab>("live");
+  const [scores, setScores] = useState(liveScores);
+  const [tick, setTick] = useState(0);
+
+  // Simulate real-time score & clock updates every 5s
+  useEffect(() => {
+    const id = setInterval(() => {
+      setScores((prev) =>
+        prev.map((m) => {
+          const bumpHome = Math.random() < 0.12;
+          const bumpAway = Math.random() < 0.1;
+          // football-style minute tick; basketball numeric quarter time left as-is
+          let newTime = m.time;
+          const minMatch = m.time.match(/^(\d+)'/);
+          if (minMatch) {
+            const next = Math.min(90, parseInt(minMatch[1], 10) + 1);
+            newTime = `${next}'`;
+          }
+          return {
+            ...m,
+            time: newTime,
+            scoreH: m.scoreH + (bumpHome ? (m.league === "NBA" ? 2 : 1) : 0),
+            scoreA: m.scoreA + (bumpAway ? (m.league === "NBA" ? 2 : 1) : 0),
+          };
+        }),
+      );
+      setTick((t) => t + 1);
+    }, 5000);
+    return () => clearInterval(id);
+  }, []);
 
   const tabs: { key: Tab; label: string }[] = [
     { key: "live", label: "🔴 Live" },
@@ -158,8 +187,9 @@ const SportsPage = () => {
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
                   <span className="text-sm font-semibold text-foreground">Live Matches</span>
+                  <span className="ml-auto text-caption text-muted-foreground">Auto-refresh · {tick}</span>
                 </div>
-                {liveScores.map((match, i) => (
+                {scores.map((match, i) => (
                   <motion.div key={i} initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                     className="liquid-glass-elevated rounded-2xl p-4 relative z-10">
                     <div className="flex items-center justify-between mb-2">
