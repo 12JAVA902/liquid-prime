@@ -131,18 +131,7 @@ const FloatingOrb = () => {
         >
           {/* Siri-style translucent orb */}
           <SiriOrb size={68} intensity={voiceIntensity || intensity} listening={isListening} />
-          <motion.div
-            className="absolute inset-0 rounded-full border-2 border-primary/30"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.5, 0, 0.5],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
+          
           
           {/* Sparkles on hover */}
           <AnimatePresence>
