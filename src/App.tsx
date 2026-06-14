@@ -64,6 +64,7 @@ const App = () => (
             <Route path="/discover" element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </MuteProvider>
         </AuthProvider>
       </BrowserRouter>
     </TooltipProvider>
