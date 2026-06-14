@@ -155,6 +155,36 @@ export type Database = {
         }
         Relationships: []
       }
+      wallet_transactions: {
+        Row: {
+          amount: number
+          counterparty: string | null
+          created_at: string
+          id: string
+          note: string | null
+          type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          counterparty?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          counterparty?: string | null
+          created_at?: string
+          id?: string
+          note?: string | null
+          type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
