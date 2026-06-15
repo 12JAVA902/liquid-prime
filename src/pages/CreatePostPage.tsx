@@ -12,6 +12,8 @@ import {
   Sticker,
   Square,
   Circle,
+  ZoomIn,
+  Wand2,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -67,6 +69,8 @@ const CreatePostPage = () => {
   const [facing, setFacing] = useState<"user" | "environment">("user");
   const [recording, setRecording] = useState(false);
   const [recordSecs, setRecordSecs] = useState(0);
+  const [zoom, setZoom] = useState(1);
+  const [aiZooming, setAiZooming] = useState(false);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const videoStreamRef = useRef<HTMLVideoElement>(null);
@@ -120,11 +124,17 @@ const CreatePostPage = () => {
     if (!videoStreamRef.current || !canvasRef.current) return;
     const v = videoStreamRef.current;
     const c = canvasRef.current;
+    // Honor digital zoom by cropping center
+    const z = Math.max(1, zoom);
+    const sw = v.videoWidth / z;
+    const sh = v.videoHeight / z;
+    const sx = (v.videoWidth - sw) / 2;
+    const sy = (v.videoHeight - sh) / 2;
     c.width = v.videoWidth;
     c.height = v.videoHeight;
     const ctx = c.getContext("2d")!;
     ctx.filter = filterCss;
-    ctx.drawImage(v, 0, 0);
+    ctx.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
     c.toBlob(
       (blob) => {
         if (!blob) return;
@@ -136,6 +146,44 @@ const CreatePostPage = () => {
       "image/jpeg",
       0.92,
     );
+  };
+
+  // AI Infinity Zoom: snap current frame and ask AI to outpaint / enhance further detail
+  const aiInfinityZoom = async () => {
+    if (!videoStreamRef.current || !canvasRef.current) return;
+    setAiZooming(true);
+    try {
+      const v = videoStreamRef.current;
+      const c = canvasRef.current;
+      const z = Math.max(1, zoom);
+      const sw = v.videoWidth / z;
+      const sh = v.videoHeight / z;
+      const sx = (v.videoWidth - sw) / 2;
+      const sy = (v.videoHeight - sh) / 2;
+      c.width = 1024;
+      c.height = 1024;
+      const ctx = c.getContext("2d")!;
+      ctx.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
+      const dataUrl = c.toDataURL("image/jpeg", 0.9);
+      toast.loading("AI is enhancing zoom…", { id: "ai-zoom" });
+      const { data, error } = await supabase.functions.invoke("ai-zoom", {
+        body: { imageDataUrl: dataUrl },
+      });
+      if (error) throw error;
+      if (!data?.imageUrl) throw new Error("No image returned");
+      // Convert returned data URL to File
+      const res = await fetch(data.imageUrl);
+      const blob = await res.blob();
+      const f = new File([blob], `ai-zoom-${Date.now()}.jpg`, { type: "image/jpeg" });
+      setFile(f);
+      setPreview(URL.createObjectURL(blob));
+      setMediaType("image");
+      toast.success("AI zoom complete ✨", { id: "ai-zoom" });
+    } catch (e: any) {
+      toast.error(e.message || "AI zoom failed", { id: "ai-zoom" });
+    } finally {
+      setAiZooming(false);
+    }
   };
 
   const toggleRecord = () => {
@@ -432,6 +480,75 @@ const CreatePostPage = () => {
               >
                 <RotateCcw className="w-4 h-4 text-foreground" />
               </button>
+            </div>
+
+            {/* Filter row on camera too */}
+            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.name}
+                  onClick={() => setFilterCss(f.css)}
+                  className={`depth-press flex-shrink-0 px-3 py-2 rounded-xl text-xs font-medium ${
+                    filterCss === f.css ? "bg-primary text-primary-foreground" : "liquid-glass text-foreground"
+                  }`}
+                >
+                  {f.name}
+                </button>
+              ))}
+            </div>
+
+            {/* Capture controls */}
+            <div className="relative liquid-glass rounded-2xl overflow-hidden aspect-square bg-black">
+              <video
+                ref={videoStreamRef}
+                autoPlay
+                playsInline
+                muted
+                className={`w-full h-full object-cover ${facing === "user" ? "mirror" : ""}`}
+                style={{ filter: filterCss, transform: `scale(${zoom})`, transformOrigin: "center" }}
+              />
+              {recording && (
+                <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-destructive/90 text-white text-xs font-semibold px-2 py-1 rounded-full">
+                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
+                  REC {Math.floor(recordSecs / 60)}:{(recordSecs % 60).toString().padStart(2, "0")}
+                </div>
+              )}
+              {zoom > 1 && (
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 px-2 py-1 rounded-full bg-background/70 backdrop-blur-md text-xs font-semibold text-foreground">
+                  {zoom.toFixed(1)}x
+                </div>
+              )}
+              <button
+                onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
+                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-background/60 flex items-center justify-center backdrop-blur-md"
+              >
+                <RotateCcw className="w-4 h-4 text-foreground" />
+              </button>
+            </div>
+
+            {/* Zoom slider + AI Infinity Zoom */}
+            <div className="liquid-glass rounded-2xl p-3 space-y-2">
+              <div className="flex items-center gap-2">
+                <ZoomIn className="w-4 h-4 text-primary" />
+                <span className="text-caption text-muted-foreground flex-1">Zoom · {zoom.toFixed(1)}x</span>
+                <button
+                  onClick={aiInfinityZoom}
+                  disabled={aiZooming || zoom < 2}
+                  className="depth-press flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-xs font-semibold disabled:opacity-40"
+                >
+                  <Wand2 className="w-3 h-3" />
+                  {aiZooming ? "Enhancing…" : "AI ∞ Zoom"}
+                </button>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="10"
+                step="0.1"
+                value={zoom}
+                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                className="w-full accent-primary"
+              />
             </div>
 
             {/* Filter row on camera too */}
