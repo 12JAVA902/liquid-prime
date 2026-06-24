@@ -127,7 +127,12 @@ const AuthPage = () => {
       setOtpSent(true);
       toast.success("OTP sent to your phone!");
     } catch (err: any) {
-      toast.error(err.message || "Failed to send OTP");
+      // Check if error is due to SMS provider not being configured
+      if (err.message?.includes('SMS') || err.message?.includes('provider') || err.message?.includes('Twilio')) {
+        toast.error("SMS not configured. Please use email or contact admin to enable phone authentication.");
+      } else {
+        toast.error(err.message || "Failed to send OTP");
+      }
     } finally {
       setLoading(false);
     }
