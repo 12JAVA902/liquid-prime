@@ -197,6 +197,28 @@ const CallPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
+      {/* Animated liquid glass background */}
+      <div className="absolute inset-0 -z-10">
+        <motion.div
+          className="absolute -top-32 -left-32 w-[480px] h-[480px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(80,140,255,0.5), transparent 70%)", filter: "blur(60px)" }}
+          animate={{ x: [0, 80, 0], y: [0, 60, 0] }}
+          transition={{ duration: 10, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute -bottom-32 -right-32 w-[480px] h-[480px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(255,80,180,0.45), transparent 70%)", filter: "blur(60px)" }}
+          animate={{ x: [0, -60, 0], y: [0, -80, 0] }}
+          transition={{ duration: 12, repeat: Infinity, ease: "easeInOut" }}
+        />
+        <motion.div
+          className="absolute top-1/3 right-1/4 w-[360px] h-[360px] rounded-full"
+          style={{ background: "radial-gradient(circle, rgba(80,255,160,0.35), transparent 70%)", filter: "blur(70px)" }}
+          animate={{ scale: [1, 1.2, 1] }}
+          transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
+        />
+      </div>
+
       {/* Remote video (full screen) */}
       <video
         ref={remoteVideoRef}
@@ -204,56 +226,69 @@ const CallPage = () => {
         playsInline
         className="absolute inset-0 w-full h-full object-cover"
       />
-      
-      {/* Local video (small overlay) */}
-      <div className="absolute inset-0 bg-background/40 backdrop-blur-sm" />
-      
-      {/* Top info */}
-      <div className="relative z-10 safe-area-top p-6 text-center">
-        <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-          <p className="text-sm text-muted-foreground mb-1">
-            {callStatus === 'ringing' && 'Ringing...'}
-            {callStatus === 'connecting' && 'Connecting...'}
-            {callStatus === 'connected' && 'Connected'}
-            {callStatus === 'ended' && 'Call Ended'}
+
+      {/* Glass overlay */}
+      <div className="absolute inset-0 bg-background/30 backdrop-blur-md" />
+
+      {/* Top info card */}
+      <div className="relative z-10 safe-area-top p-6">
+        <motion.div
+          initial={{ opacity: 0, y: -20 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="mx-auto max-w-sm liquid-glass-elevated rounded-3xl px-6 py-4 text-center"
+        >
+          <p className="text-xs uppercase tracking-wider text-muted-foreground mb-1">
+            {callStatus === 'ringing' && '• Ringing'}
+            {callStatus === 'connecting' && '• Connecting'}
+            {callStatus === 'connected' && '• Connected'}
+            {callStatus === 'ended' && '• Call Ended'}
           </p>
-          <p className="text-xl text-display text-foreground">{calleeName}</p>
-          <p className="text-sm text-primary mt-1">{formatTime(callTime)}</p>
+          <p className="text-display text-foreground text-2xl">{calleeName}</p>
+          <p className="text-sm text-primary mt-1 font-mono">{formatTime(callTime)}</p>
         </motion.div>
       </div>
 
-      {/* Self view (small) */}
+      {/* Self view (small, floating glass) */}
       <div className="relative z-10 flex-1 flex items-end justify-end p-4">
-        <div className="w-32 h-44 rounded-2xl overflow-hidden liquid-glass-elevated">
-          <video 
-            ref={localVideoRef} 
-            autoPlay 
-            playsInline 
-            muted 
-            className="w-full h-full object-cover mirror" 
+        <motion.div
+          initial={{ scale: 0, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          transition={{ delay: 0.3, type: "spring" }}
+          drag
+          dragConstraints={{ left: -200, right: 0, top: -400, bottom: 0 }}
+          className="w-32 h-44 rounded-3xl overflow-hidden liquid-glass-elevated border border-white/20 shadow-2xl cursor-grab active:cursor-grabbing"
+        >
+          <video
+            ref={localVideoRef}
+            autoPlay
+            playsInline
+            muted
+            className="w-full h-full object-cover mirror"
           />
-        </div>
+        </motion.div>
       </div>
 
       {/* Controls */}
       <motion.div
-        initial={{ y: 100 }}
-        animate={{ y: 0 }}
+        initial={{ y: 100, opacity: 0 }}
+        animate={{ y: 0, opacity: 1 }}
         className="relative z-10 safe-area-bottom pb-8"
       >
-        <div className="flex justify-center gap-5">
-          <button onClick={toggleMute} className="depth-press w-14 h-14 rounded-full liquid-glass-elevated flex items-center justify-center">
-            {muted ? <MicOff className="w-6 h-6 text-destructive relative z-10" /> : <Mic className="w-6 h-6 text-foreground relative z-10" />}
-          </button>
-          <button onClick={toggleVideo} className="depth-press w-14 h-14 rounded-full liquid-glass-elevated flex items-center justify-center">
-            {videoOn ? <Video className="w-6 h-6 text-foreground relative z-10" /> : <VideoOff className="w-6 h-6 text-destructive relative z-10" />}
-          </button>
-          <button className="depth-press w-14 h-14 rounded-full liquid-glass-elevated flex items-center justify-center">
-            <RotateCcw className="w-6 h-6 text-foreground relative z-10" />
-          </button>
-          <button onClick={endCall} className="depth-press w-14 h-14 rounded-full bg-destructive flex items-center justify-center">
-            <PhoneOff className="w-6 h-6 text-primary-foreground" />
-          </button>
+        <div className="mx-auto max-w-sm liquid-glass-elevated rounded-full py-3 px-4">
+          <div className="flex justify-center gap-3">
+            <button onClick={toggleMute} className={`depth-press w-14 h-14 rounded-full flex items-center justify-center ${muted ? "bg-destructive/30" : "liquid-glass-subtle"}`}>
+              {muted ? <MicOff className="w-6 h-6 text-destructive" /> : <Mic className="w-6 h-6 text-foreground" />}
+            </button>
+            <button onClick={toggleVideo} className={`depth-press w-14 h-14 rounded-full flex items-center justify-center ${!videoOn ? "bg-destructive/30" : "liquid-glass-subtle"}`}>
+              {videoOn ? <Video className="w-6 h-6 text-foreground" /> : <VideoOff className="w-6 h-6 text-destructive" />}
+            </button>
+            <button className="depth-press w-14 h-14 rounded-full liquid-glass-subtle flex items-center justify-center">
+              <RotateCcw className="w-6 h-6 text-foreground" />
+            </button>
+            <button onClick={endCall} className="depth-press w-14 h-14 rounded-full bg-destructive flex items-center justify-center shadow-lg shadow-destructive/50">
+              <PhoneOff className="w-6 h-6 text-primary-foreground" />
+            </button>
+          </div>
         </div>
       </motion.div>
     </div>
