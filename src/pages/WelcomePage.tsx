@@ -186,13 +186,8 @@ const WelcomePage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
           onClick={() => {
-            // Download APK from local file
-            const link = document.createElement('a');
-            link.href = '/primegram.apk';
-            link.download = 'Primegram.apk';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
+            // Download APK from GitHub releases
+            window.open('https://github.com/12JAVA902/liquid-prime/releases/latest/download/app-debug.apk', '_blank');
           }}
           className="depth-press mt-4 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-2 mx-auto"
           style={{ boxShadow: "0 4px 20px hsla(210, 100%, 60%, 0.3)" }}
