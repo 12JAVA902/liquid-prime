@@ -533,7 +533,7 @@ const CreatePostPage = () => {
                 <span className="text-caption text-muted-foreground flex-1">Zoom · {zoom.toFixed(1)}x</span>
                 <button
                   onClick={aiInfinityZoom}
-                  disabled={aiZooming || zoom < 2}
+                  disabled={aiZooming}
                   className="depth-press flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-xs font-semibold disabled:opacity-40"
                 >
                   <Wand2 className="w-3 h-3" />
