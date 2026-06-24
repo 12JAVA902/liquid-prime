@@ -1,7 +1,8 @@
 import { useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
-import { MessageCircle, Settings, Wallet } from "lucide-react";
+import { MessageCircle, Settings, Wallet, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import logoAsset from "@/assets/primegram-logo.png.asset.json";
 
 const TopNavBar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -42,10 +43,10 @@ const TopNavBar = () => {
           <button
             type="button"
             onClick={() => window.dispatchEvent(new CustomEvent('prime:openOrb'))}
-            className="w-7 h-7 rounded-lg liquid-glass flex items-center justify-center depth-press"
+            className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center depth-press"
             aria-label="Open Heiji AI"
           >
-            <span className="text-sm font-bold text-primary relative z-10">P</span>
+            <img src={logoAsset.url} alt="Primegram" className="w-full h-full object-contain" />
           </button>
           <motion.h1
             className="text-headline text-foreground"
@@ -60,6 +61,9 @@ const TopNavBar = () => {
           className="flex items-center gap-2"
           animate={collapsed ? { opacity: 0, width: 0, overflow: "hidden" } : { opacity: 1, width: "auto" }}
         >
+          <button className={iconBtn} onClick={() => navigate("/discover")} aria-label="Discover people">
+            <UserPlus className="w-4 h-4 text-foreground" strokeWidth={1.5} />
+          </button>
           <button className={iconBtn} onClick={() => navigate("/messages")}>
             <MessageCircle className="w-4 h-4 text-foreground" strokeWidth={1.5} />
           </button>

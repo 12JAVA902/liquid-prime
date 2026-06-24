@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Download, User } from "lucide-react";
+import { toast } from "sonner";
 
 const GooeyBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -158,6 +159,17 @@ const WelcomePage = () => {
           >
             I already have an account
           </button>
+
+          <button
+            onClick={() => {
+              localStorage.setItem('guestMode', 'true');
+              navigate("/");
+            }}
+            className="depth-press w-full py-3.5 rounded-2xl liquid-glass-subtle text-foreground text-sm font-semibold flex items-center justify-center gap-2 relative z-10"
+          >
+            <User className="w-4 h-4" />
+            Continue as Guest
+          </button>
         </motion.div>
 
         <motion.p
@@ -168,6 +180,31 @@ const WelcomePage = () => {
         >
           By continuing, you agree to our Terms & Privacy Policy
         </motion.p>
+
+        <motion.button
+          initial={{ opacity: 0, scale: 0.8 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
+          onClick={() => {
+            // Check if PWA is installable
+            if ((window as any).deferredPrompt) {
+              (window as any).deferredPrompt.prompt();
+              (window as any).deferredPrompt.userChoice.then((choiceResult: any) => {
+                if (choiceResult.outcome === 'accepted') {
+                  console.log('User accepted the install prompt');
+                }
+                (window as any).deferredPrompt = null;
+              });
+            } else {
+              // Fallback: show instructions
+              toast.info('To install: Tap share button and "Add to Home Screen"');
+            }
+          }}
+          className="depth-press mt-4 px-4 py-2 rounded-full liquid-glass text-foreground text-xs font-semibold flex items-center justify-center gap-2 mx-auto"
+        >
+          <Download className="w-3 h-3" />
+          Download App
+        </motion.button>
       </motion.div>
     </div>
   );

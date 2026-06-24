@@ -45,7 +45,7 @@ class BluetoothMotionService {
   private isScanning: boolean = false;
   private motionThreshold: number = 10; // dBm change threshold
   private historyLength: number = 20; // Number of samples to keep
-  private scanInterval: number | null = null;
+  private scanInterval: ReturnType<typeof setInterval> | null = null;
 
   async startScanning(): Promise<void> {
     if (this.isScanning) {

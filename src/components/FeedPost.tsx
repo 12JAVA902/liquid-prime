@@ -1,6 +1,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Heart, MessageCircle, Send, Bookmark, Play, Pause } from "lucide-react";
+import { Heart, MessageCircle, Send, Bookmark, Play, Pause, Loader2, Volume2, VolumeX } from "lucide-react";
+import { useMute } from "@/contexts/MuteContext";
 
 interface FeedPostProps {
   image: string;
@@ -16,16 +17,18 @@ interface FeedPostProps {
 }
 
 const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes, comments, timeAgo, index, autoPlay = true }: FeedPostProps) => {
+  const { muted, toggleMuted } = useMute();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
   const [likeCount, setLikeCount] = useState(likes);
   const [showHeart, setShowHeart] = useState(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [videoLoading, setVideoLoading] = useState(true);
   const lastTap = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
-  
+
   const isVideo = mediaType === "video";
   const isUrl = avatar.startsWith("http");
 
@@ -135,37 +138,46 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
                 src={image} 
                 className="w-full aspect-[4/5] object-cover bg-black" 
                 playsInline
-                muted
+                muted={muted}
                 loop
+                preload="auto"
+                onLoadStart={() => setVideoLoading(true)}
+                onCanPlay={() => setVideoLoading(false)}
+                onWaiting={() => setVideoLoading(true)}
+                onPlaying={() => setVideoLoading(false)}
                 onClick={togglePlayPause}
               />
-              
-              {/* Play/Pause overlay */}
-              {!isVisible && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <motion.div
-                    initial={{ scale: 0, opacity: 0 }}
-                    animate={{ scale: 1, opacity: 1 }}
-                    className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center"
-                  >
-                    <Play className="w-8 h-8 text-white" />
-                  </motion.div>
+
+              {/* Loading spinner */}
+              {videoLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/40 pointer-events-none">
+                  <Loader2 className="w-10 h-10 text-white animate-spin" />
                 </div>
               )}
-              
-              {/* Controls hint */}
+
+              {/* Play overlay when paused & not visible */}
+              {!isVisible && !videoLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-black/30 pointer-events-none">
+                  <div className="w-16 h-16 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                    <Play className="w-8 h-8 text-white" />
+                  </div>
+                </div>
+              )}
+
+              {/* Mute toggle (global) */}
+              <button
+                onClick={(e) => { e.stopPropagation(); toggleMuted(); }}
+                className="absolute top-2 right-2 w-9 h-9 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center depth-press"
+                aria-label={muted ? "Unmute videos" : "Mute videos"}
+              >
+                {muted ? <VolumeX className="w-4 h-4 text-white" /> : <Volume2 className="w-4 h-4 text-white" />}
+              </button>
+
+              {/* Play/Pause indicator */}
               <div className="absolute bottom-2 right-2">
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 0.7 }}
-                  className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center"
-                >
-                  {isPlaying ? (
-                    <Pause className="w-4 h-4 text-white" />
-                  ) : (
-                    <Play className="w-4 h-4 text-white" />
-                  )}
-                </motion.div>
+                <div className="w-8 h-8 rounded-full bg-black/50 flex items-center justify-center opacity-70">
+                  {isPlaying ? <Pause className="w-4 h-4 text-white" /> : <Play className="w-4 h-4 text-white" />}
+                </div>
               </div>
             </div>
           ) : (

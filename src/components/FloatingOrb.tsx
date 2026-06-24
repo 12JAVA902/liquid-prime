@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Mic, MicOff, Volume2 } from "lucide-react";
-import PrimeOrb from "./PrimeOrb";
+import SiriOrb from "./SiriOrb";
 import PrimeAIChat from "./PrimeAIChat";
 
 const FloatingOrb = () => {
@@ -117,7 +116,7 @@ const FloatingOrb = () => {
     <>
       {/* Floating Orb Assistant */}
       <motion.div
-        className="fixed bottom-24 left-1/2 -translate-x-1/2 z-[55]"
+        className="fixed bottom-24 left-4 z-[55]"
         initial={{ scale: 0, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -130,35 +129,9 @@ const FloatingOrb = () => {
           whileHover={{ scale: 1.1 }}
           whileTap={{ scale: 0.95 }}
         >
-          {/* Glow effect */}
-          <motion.div
-            className="absolute inset-0 rounded-full"
-            animate={{
-              boxShadow: isHovered 
-                ? "0 0 30px hsla(210, 100%, 60%, 0.6), 0 0 60px hsla(280, 70%, 55%, 0.4)"
-                : "0 0 15px hsla(210, 100%, 60%, 0.3), 0 0 30px hsla(280, 70%, 55%, 0.2)"
-            }}
-            transition={{ duration: 0.3 }}
-          />
+          {/* Siri-style translucent orb */}
+          <SiriOrb size={68} intensity={voiceIntensity || intensity} listening={isListening} />
           
-          {/* 3D Orb */}
-          <div className="w-16 h-16 relative">
-            <PrimeOrb intensity={intensity} />
-          </div>
-          
-          {/* Pulse ring */}
-          <motion.div
-            className="absolute inset-0 rounded-full border-2 border-primary/30"
-            animate={{
-              scale: [1, 1.2, 1],
-              opacity: [0.5, 0, 0.5],
-            }}
-            transition={{
-              duration: 2,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
           
           {/* Sparkles on hover */}
           <AnimatePresence>

@@ -48,6 +48,7 @@ const MoviesPage = () => {
   const [search, setSearch] = useState("");
   const [selectedMovie, setSelectedMovie] = useState<Movie | null>(null);
   const [trailerKey, setTrailerKey] = useState<string | null>(null);
+  const [cast, setCast] = useState<Array<{ id: number; name: string; character: string; profile_path: string | null }>>([]);
   const [favorites, setFavorites] = useState<Set<number>>(new Set());
   const [savedMovies, setSavedMovies] = useState<SavedMovie[]>([]);
   const [loading, setLoading] = useState(true);
@@ -182,13 +183,21 @@ const MoviesPage = () => {
   const openMovie = async (movie: Movie) => {
     setSelectedMovie(movie);
     setTrailerKey(null);
+    setCast([]);
     try {
-      const res = await fetch(`${FUNC_URL}?endpoint=movie/${movie.id}/videos`, {
-        headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
-      });
-      const data = await res.json();
-      const trailer = data.results?.find((v: any) => v.type === "Trailer" && v.site === "YouTube");
+      const [videosRes, creditsRes] = await Promise.all([
+        fetch(`${FUNC_URL}?endpoint=movie/${movie.id}/videos`, {
+          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        }),
+        fetch(`${FUNC_URL}?endpoint=movie/${movie.id}/credits`, {
+          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        }),
+      ]);
+      const videos = await videosRes.json();
+      const credits = await creditsRes.json();
+      const trailer = videos.results?.find((v: any) => v.type === "Trailer" && v.site === "YouTube");
       if (trailer) setTrailerKey(trailer.key);
+      if (credits.cast) setCast(credits.cast.slice(0, 12));
     } catch {}
   };
 
@@ -318,6 +327,26 @@ const MoviesPage = () => {
                   </div>
                 )}
                 <p className="text-sm text-foreground/80 leading-relaxed mb-4">{selectedMovie.overview}</p>
+
+                {cast.length > 0 && (
+                  <div className="mb-4">
+                    <h3 className="text-headline text-foreground text-sm mb-2">Cast</h3>
+                    <div className="flex gap-3 overflow-x-auto scrollbar-none pb-2">
+                      {cast.map(c => (
+                        <div key={c.id} className="flex-shrink-0 w-20 text-center">
+                          {c.profile_path ? (
+                            <img src={`${TMDB_IMG}/w185${c.profile_path}`} alt={c.name} className="w-20 h-20 rounded-full object-cover mb-1" loading="lazy" />
+                          ) : (
+                            <div className="w-20 h-20 rounded-full bg-secondary mb-1 flex items-center justify-center text-xs text-muted-foreground">?</div>
+                          )}
+                          <p className="text-xs font-medium text-foreground line-clamp-1">{c.name}</p>
+                          <p className="text-[10px] text-muted-foreground line-clamp-1">{c.character}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div className="flex gap-3">
                   <button onClick={() => toggleFav(selectedMovie.id)} className={`depth-press flex-1 py-3 rounded-2xl text-sm font-semibold flex items-center justify-center gap-2 ${favorites.has(selectedMovie.id) ? "bg-destructive/20 text-destructive" : "liquid-glass text-foreground relative z-10"}`}>
                     <Heart className={`w-4 h-4 ${favorites.has(selectedMovie.id) ? "fill-current" : ""}`} />
