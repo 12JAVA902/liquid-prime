@@ -186,6 +186,21 @@ const WelcomePage = () => {
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
           onClick={() => {
+            // Download APK from GitHub releases
+            window.open('https://github.com/12JAVA902/liquid-prime/releases/latest/download/app-debug.apk', '_blank');
+          }}
+          className="depth-press mt-4 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-2 mx-auto"
+          style={{ boxShadow: "0 4px 20px hsla(210, 100%, 60%, 0.3)" }}
+        >
+          <Download className="w-3 h-3" />
+          Download APK (Android)
+        </motion.button>
+
+        <motion.button
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 1.8 }}
+          onClick={() => {
             // Check if PWA is installable
             if ((window as any).deferredPrompt) {
               (window as any).deferredPrompt.prompt();
@@ -196,14 +211,13 @@ const WelcomePage = () => {
                 (window as any).deferredPrompt = null;
               });
             } else {
-              // Fallback: show instructions
+              // Fallback: show instructions for PWA install
               toast.info('To install: Tap share button and "Add to Home Screen"');
             }
           }}
-          className="depth-press mt-4 px-4 py-2 rounded-full liquid-glass text-foreground text-xs font-semibold flex items-center justify-center gap-2 mx-auto"
+          className="depth-press mt-2 px-4 py-2 rounded-full liquid-glass text-foreground text-xs font-semibold flex items-center justify-center gap-2 mx-auto"
         >
-          <Download className="w-3 h-3" />
-          Download App
+          Install as PWA (iOS/Desktop)
         </motion.button>
       </motion.div>
     </div>
