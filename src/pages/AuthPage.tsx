@@ -4,7 +4,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Phone } from "lucide-react";
+import { Phone, Eye, EyeOff, Shield } from "lucide-react";
+import { validateEmail, validatePhone, validatePassword, sanitizeInput, sanitizeName, authRateLimiter, otpRateLimiter } from "@/utils/security";
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -16,22 +17,57 @@ const AuthPage = () => {
   const [otp, setOtp] = useState("");
   const [otpSent, setOtpSent] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
   const navigate = useNavigate();
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate inputs
+    const sanitizedEmail = sanitizeInput(email.toLowerCase());
+    const sanitizedFullName = sanitizeName(fullName);
+    
+    if (!validateEmail(sanitizedEmail)) {
+      toast.error("Please enter a valid email address");
+      return;
+    }
+    
+    if (isSignUp) {
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        setPasswordErrors(passwordValidation.errors);
+        toast.error(passwordValidation.errors[0]);
+        return;
+      }
+      setPasswordErrors([]);
+      
+      if (sanitizedFullName.length < 2) {
+        toast.error("Please enter your full name");
+        return;
+      }
+    }
+    
+    // Rate limiting
+    try {
+      authRateLimiter.canAttempt();
+    } catch (err: any) {
+      toast.error(err.message);
+      return;
+    }
+    
     setLoading(true);
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
-          email,
+          email: sanitizedEmail,
           password,
-          options: { data: { full_name: fullName }, emailRedirectTo: window.location.origin },
+          options: { data: { full_name: sanitizedFullName }, emailRedirectTo: window.location.origin },
         });
         if (error) throw error;
         toast.success("Account created! Check your email to verify.");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email: sanitizedEmail, password });
         if (error) throw error;
         navigate("/");
       }
@@ -44,17 +80,48 @@ const AuthPage = () => {
 
   const handlePhoneSendOtp = async () => {
     if (!phone) { toast.error("Enter phone number"); return; }
+    
+    const sanitizedPhone = sanitizeInput(phone);
+    if (!validatePhone(sanitizedPhone)) {
+      toast.error("Please enter a valid phone number (e.g., +1234567890)");
+      return;
+    }
+    
+    if (isSignUp) {
+      const sanitizedFullName = sanitizeName(fullName);
+      if (sanitizedFullName.length < 2) {
+        toast.error("Please enter your full name");
+        return;
+      }
+      
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        setPasswordErrors(passwordValidation.errors);
+        toast.error(passwordValidation.errors[0]);
+        return;
+      }
+      setPasswordErrors([]);
+    }
+    
+    // Rate limiting for OTP
+    try {
+      otpRateLimiter.canAttempt();
+    } catch (err: any) {
+      toast.error(err.message);
+      return;
+    }
+    
     setLoading(true);
     try {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
-          phone,
+          phone: sanitizedPhone,
           password: password || undefined,
-          options: { data: { full_name: fullName } },
+          options: { data: { full_name: sanitizeName(fullName) } },
         });
         if (error) throw error;
       } else {
-        const { error } = await supabase.auth.signInWithOtp({ phone });
+        const { error } = await supabase.auth.signInWithOtp({ phone: sanitizedPhone });
         if (error) throw error;
       }
       setOtpSent(true);
@@ -67,15 +134,21 @@ const AuthPage = () => {
   };
 
   const handlePhoneVerify = async () => {
+    if (!otp || otp.length !== 6) {
+      toast.error("Please enter the 6-digit verification code");
+      return;
+    }
+    
     setLoading(true);
     try {
       const { error } = await supabase.auth.verifyOtp({
-        phone,
+        phone: sanitizeInput(phone),
         token: otp,
         type: isSignUp ? "sms" : "sms",
       });
       if (error) throw error;
       toast.success("Verified!");
+      otpRateLimiter.reset(); // Reset rate limiter on success
       navigate("/");
     } catch (err: any) {
       toast.error(err.message || "Invalid OTP");
@@ -120,6 +193,12 @@ const AuthPage = () => {
         </div>
 
         <div className="liquid-glass rounded-3xl p-6 space-y-4">
+          {/* Security Notice */}
+          <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-primary/10 border border-primary/20">
+            <Shield className="w-4 h-4 text-primary" />
+            <p className="text-xs text-primary">Secure authentication with OTP verification</p>
+          </div>
+
           {/* Google */}
           <button type="button" onClick={handleGoogleSignIn} disabled={loading} className="depth-press w-full py-3 rounded-2xl liquid-glass-subtle text-foreground text-sm font-semibold flex items-center justify-center gap-2 relative z-10">
             <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -163,7 +242,31 @@ const AuthPage = () => {
               </div>
               <div>
                 <label className="text-caption text-muted-foreground block mb-1.5">Password</label>
-                <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" placeholder="••••••••" required minLength={6} />
+                <div className="relative">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={password} 
+                    onChange={e => setPassword(e.target.value)} 
+                    className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 pr-10" 
+                    placeholder="••••••••" 
+                    required 
+                    minLength={8} 
+                  />
+                  <button 
+                    type="button" 
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+                {passwordErrors.length > 0 && (
+                  <ul className="text-[10px] text-destructive mt-1 space-y-0.5">
+                    {passwordErrors.map((error, i) => (
+                      <li key={i}>• {error}</li>
+                    ))}
+                  </ul>
+                )}
               </div>
               <button type="submit" disabled={loading} className="depth-press w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
                 {loading ? "..." : isSignUp ? "Create Account" : "Sign In"}
@@ -179,18 +282,57 @@ const AuthPage = () => {
               )}
               <div>
                 <label className="text-caption text-muted-foreground block mb-1.5">Phone Number</label>
-                <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" placeholder="+1234567890" />
+                <input 
+                  type="tel" 
+                  value={phone} 
+                  onChange={e => setPhone(e.target.value)} 
+                  className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" 
+                  placeholder="+1234567890" 
+                  maxLength={15}
+                />
+                <p className="text-[10px] text-muted-foreground mt-1">Format: +[country code][number] (e.g., +1234567890)</p>
               </div>
               {isSignUp && !otpSent && (
                 <div>
                   <label className="text-caption text-muted-foreground block mb-1.5">Password</label>
-                  <input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" placeholder="••••••••" minLength={6} />
+                  <div className="relative">
+                    <input 
+                      type={showPassword ? "text" : "password"} 
+                      value={password} 
+                      onChange={e => setPassword(e.target.value)} 
+                      className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 pr-10" 
+                      placeholder="••••••••" 
+                      minLength={8} 
+                    />
+                    <button 
+                      type="button" 
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                  {passwordErrors.length > 0 && (
+                    <ul className="text-[10px] text-destructive mt-1 space-y-0.5">
+                      {passwordErrors.map((error, i) => (
+                        <li key={i}>• {error}</li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               )}
               {otpSent && (
                 <div>
                   <label className="text-caption text-muted-foreground block mb-1.5">Verification Code</label>
-                  <input type="text" value={otp} onChange={e => setOtp(e.target.value)} className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" placeholder="123456" maxLength={6} />
+                  <input 
+                    type="text" 
+                    value={otp} 
+                    onChange={e => setOtp(e.target.value.replace(/[^0-9]/g, ''))} 
+                    className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 text-center tracking-widest" 
+                    placeholder="123456" 
+                    maxLength={6} 
+                  />
+                  <p className="text-[10px] text-muted-foreground mt-1">Enter the 6-digit code sent to your phone</p>
                 </div>
               )}
               <button type="button" onClick={otpSent ? handlePhoneVerify : handlePhoneSendOtp} disabled={loading} className="depth-press w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">

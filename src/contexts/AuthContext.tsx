@@ -26,6 +26,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setLoading(false);
+      
+      // Clear sensitive data on sign out
+      if (_event === 'SIGNED_OUT') {
+        localStorage.removeItem('guestMode');
+      }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -38,6 +43,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Clear all local storage data
+    localStorage.clear();
   };
 
   return (
