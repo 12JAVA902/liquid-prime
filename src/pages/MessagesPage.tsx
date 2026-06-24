@@ -299,6 +299,10 @@ const MessagesPage = () => {
           (newMsg.sender_id === activeChat.user_id && newMsg.receiver_id === user.id)
         ) {
           setMessages(prev => [...prev, newMsg]);
+          // AI Mode auto-reply when message comes from the other party
+          if (newMsg.sender_id === activeChat.user_id && aiModeChats.has(activeChat.user_id)) {
+            aiAutoReply(newMsg, activeChat);
+          }
         }
       })
       .subscribe();
