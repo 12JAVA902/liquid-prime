@@ -89,6 +89,7 @@ const GooeyBackground = () => {
 
 const WelcomePage = () => {
   const navigate = useNavigate();
+  const [downloadingApk, setDownloadingApk] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -185,15 +186,50 @@ const WelcomePage = () => {
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
-          onClick={() => {
-            // Download APK from GitHub releases
-            window.open('https://github.com/12JAVA902/liquid-prime/releases/latest/download/app-debug.apk', '_blank');
+          onClick={async () => {
+            setDownloadingApk(true);
+            try {
+              // Try to download APK directly
+              const response = await fetch('https://github.com/12JAVA902/liquid-prime/releases/latest/download/app-debug.apk');
+              if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'Primegram.apk';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+                toast.success('APK downloaded successfully!');
+              } else {
+                // Fallback: open GitHub releases page
+                window.open('https://github.com/12JAVA902/liquid-prime/releases/latest', '_blank');
+                toast.info('Opening GitHub releases page to download APK');
+              }
+            } catch (error) {
+              // Fallback: open GitHub releases page
+              window.open('https://github.com/12JAVA902/liquid-prime/releases/latest', '_blank');
+              toast.info('Opening GitHub releases page to download APK');
+            } finally {
+              setDownloadingApk(false);
+            }
           }}
-          className="depth-press mt-4 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-2 mx-auto"
+          disabled={downloadingApk}
+          className="depth-press mt-4 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-2 mx-auto disabled:opacity-50"
           style={{ boxShadow: "0 4px 20px hsla(210, 100%, 60%, 0.3)" }}
         >
-          <Download className="w-3 h-3" />
-          Download APK (Android)
+          {downloadingApk ? (
+            <>
+              <div className="w-3 h-3 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+              Downloading...
+            </>
+          ) : (
+            <>
+              <Download className="w-3 h-3" />
+              Download APK (Android)
+            </>
+          )}
         </motion.button>
 
         <motion.button
