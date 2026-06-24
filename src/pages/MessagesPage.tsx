@@ -1,10 +1,13 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Phone, Video, Send, PhoneOff } from "lucide-react";
+import { ArrowLeft, Phone, Video, Send, PhoneOff, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import IncomingCallModal from "@/components/IncomingCallModal";
+import { toast } from "sonner";
+
+const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/prime-ai-chat`;
 
 interface ChatUser {
   user_id: string;
@@ -34,7 +37,72 @@ const MessagesPage = () => {
   const [searchResults, setSearchResults] = useState<ChatUser[]>([]);
   const [incomingCall, setIncomingCall] = useState<{ caller: ChatUser; signal: any } | null>(null);
   const [isInCall, setIsInCall] = useState(false);
+  const [aiModeChats, setAiModeChats] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("ai-mode-chats") || "[]")); } catch { return new Set(); }
+  });
+  const aiReplyingRef = useRef(false);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  const toggleAiMode = (chatId: string) => {
+    setAiModeChats(prev => {
+      const next = new Set(prev);
+      if (next.has(chatId)) { next.delete(chatId); toast.success("AI Mode off"); }
+      else { next.add(chatId); toast.success("AI Mode on — I'll learn your style and reply for you"); }
+      localStorage.setItem("ai-mode-chats", JSON.stringify(Array.from(next)));
+      return next;
+    });
+  };
+
+  const aiAutoReply = async (incoming: Message, chat: ChatUser) => {
+    if (!user || aiReplyingRef.current) return;
+    aiReplyingRef.current = true;
+    try {
+      // Learn personality from this user's last 40 sent messages across all chats
+      const { data: myMsgs } = await supabase
+        .from("messages")
+        .select("content")
+        .eq("sender_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(40);
+      const styleSamples = (myMsgs || []).map((m: any) => m.content).filter(Boolean).reverse().join("\n");
+      const system = `You are impersonating the user in a chat. Reply as them, mirroring their tone, vocabulary, slang, emoji use, message length, and punctuation. Keep replies short (1-2 sentences) unless context demands more. Never reveal you are an AI.\n\nHere are recent messages the user sent (their style):\n${styleSamples}`;
+      const recent = messages.slice(-10).map(m => ({
+        role: (m.sender_id === user.id ? "assistant" : "user") as "assistant" | "user",
+        content: m.content,
+      }));
+      const resp = await fetch(CHAT_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        body: JSON.stringify({ messages: [{ role: "system", content: system }, ...recent, { role: "user", content: incoming.content }] }),
+      });
+      if (!resp.ok) throw new Error("AI reply failed");
+      const reader = resp.body?.getReader();
+      const decoder = new TextDecoder();
+      let buf = "", reply = "";
+      while (reader) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buf += decoder.decode(value, { stream: true });
+        let nl: number;
+        while ((nl = buf.indexOf("\n")) !== -1) {
+          let line = buf.slice(0, nl); buf = buf.slice(nl + 1);
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (!line.startsWith("data: ")) continue;
+          const json = line.slice(6).trim();
+          if (json === "[DONE]") break;
+          try {
+            const c = JSON.parse(json).choices?.[0]?.delta?.content;
+            if (c) reply += c;
+          } catch {}
+        }
+      }
+      const text = reply.trim();
+      if (text) {
+        await supabase.from("messages").insert({ sender_id: user.id, receiver_id: chat.user_id, content: text });
+      }
+    } catch (e) { console.error(e); }
+    finally { aiReplyingRef.current = false; }
+  };
 
   // Fetch users to chat with
   useEffect(() => {
@@ -231,6 +299,10 @@ const MessagesPage = () => {
           (newMsg.sender_id === activeChat.user_id && newMsg.receiver_id === user.id)
         ) {
           setMessages(prev => [...prev, newMsg]);
+          // AI Mode auto-reply when message comes from the other party
+          if (newMsg.sender_id === activeChat.user_id && aiModeChats.has(activeChat.user_id)) {
+            aiAutoReply(newMsg, activeChat);
+          }
         }
       })
       .subscribe();
@@ -306,7 +378,19 @@ const MessagesPage = () => {
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-semibold">
                   {(activeChat.display_name || "U")[0].toUpperCase()}
                 </div>
-                <span className="text-headline text-foreground text-sm flex-1">{activeChat.display_name || activeChat.username || "User"}</span>
+                <span className="text-headline text-foreground text-sm flex-1">
+                  {activeChat.display_name || activeChat.username || "User"}
+                  {aiModeChats.has(activeChat.user_id) && (
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary">AI ON</span>
+                  )}
+                </span>
+                <button
+                  onClick={() => toggleAiMode(activeChat.user_id)}
+                  title="AI Mode — chats on your behalf, learns your style"
+                  className={`depth-press w-8 h-8 rounded-full flex items-center justify-center ${aiModeChats.has(activeChat.user_id) ? "bg-gradient-to-br from-primary to-primary/60" : "liquid-glass-subtle"}`}
+                >
+                  <Sparkles className={`w-4 h-4 ${aiModeChats.has(activeChat.user_id) ? "text-primary-foreground" : "text-foreground"}`} />
+                </button>
                 <button onClick={() => startCall(activeChat)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
                   <Phone className="w-4 h-4 text-foreground" />
                 </button>

@@ -533,7 +533,7 @@ const CreatePostPage = () => {
                 <span className="text-caption text-muted-foreground flex-1">Zoom · {zoom.toFixed(1)}x</span>
                 <button
                   onClick={aiInfinityZoom}
-                  disabled={aiZooming || zoom < 2}
+                  disabled={aiZooming}
                   className="depth-press flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-xs font-semibold disabled:opacity-40"
                 >
                   <Wand2 className="w-3 h-3" />
@@ -616,6 +616,31 @@ const CreatePostPage = () => {
           </button>
         )}
       </div>
+
+      {/* AI ∞ Zoom fullscreen processing overlay */}
+      <AnimatePresence>
+        {aiZooming && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[80] bg-background/80 backdrop-blur-2xl flex flex-col items-center justify-center"
+          >
+            <motion.div
+              animate={{ scale: [1, 1.15, 1], rotate: [0, 180, 360] }}
+              transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
+              className="w-32 h-32 rounded-full"
+              style={{
+                background:
+                  "conic-gradient(from 0deg, #ff3c3c, #3c8cff, #3cff8c, #ff3c3c)",
+                filter: "blur(8px)",
+              }}
+            />
+            <p className="mt-6 text-headline text-foreground text-lg">AI ∞ Zoom</p>
+            <p className="text-caption text-muted-foreground">Enhancing details in realtime…</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
