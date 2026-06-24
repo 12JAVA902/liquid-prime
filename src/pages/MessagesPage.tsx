@@ -1,10 +1,12 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Phone, Video, Send, PhoneOff } from "lucide-react";
+import { ArrowLeft, Phone, Video, Send, PhoneOff, Mic, MicOff, Camera, CameraOff } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import IncomingCallModal from "@/components/IncomingCallModal";
+import { WebRTCManager, SignalingMessage } from "@/utils/webrtc";
+import { toast } from "sonner";
 
 interface ChatUser {
   user_id: string;
@@ -34,7 +36,16 @@ const MessagesPage = () => {
   const [searchResults, setSearchResults] = useState<ChatUser[]>([]);
   const [incomingCall, setIncomingCall] = useState<{ caller: ChatUser; signal: any } | null>(null);
   const [isInCall, setIsInCall] = useState(false);
+  const [callTime, setCallTime] = useState(0);
+  const [muted, setMuted] = useState(false);
+  const [videoOn, setVideoOn] = useState(true);
+  const [callStatus, setCallStatus] = useState<'ringing' | 'connecting' | 'connected' | 'ended'>('ringing');
   const bottomRef = useRef<HTMLDivElement>(null);
+  const localVideoRef = useRef<HTMLVideoElement>(null);
+  const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const webrtcRef = useRef<WebRTCManager | null>(null);
+  const channelRef = useRef<any>(null);
+  const callTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Fetch users to chat with
   useEffect(() => {
@@ -57,17 +68,32 @@ const MessagesPage = () => {
     const channel = supabase.channel(`calls-${user.id}`);
     
     channel
-      .on('broadcast', { event: 'incoming-call' }, (payload: any) => {
+      .on('broadcast', { event: 'call-offer' }, async (payload: any) => {
         const caller = conversations.find(c => c.user_id === payload.callerId);
         if (caller) {
-          setIncomingCall({ caller, signal: payload.signal });
+          setIncomingCall({ caller, signal: payload.offer });
+        }
+      })
+      .on('broadcast', { event: 'call-answer' }, async (payload: any) => {
+        if (webrtcRef.current) {
+          await webrtcRef.current.handleAnswer(payload.answer);
+        }
+      })
+      .on('broadcast', { event: 'ice-candidate' }, async (payload: any) => {
+        if (webrtcRef.current) {
+          await webrtcRef.current.handleIceCandidate(payload.candidate);
         }
       })
       .on('broadcast', { event: 'call-ended' }, () => {
+        endCall();
+      })
+      .on('broadcast', { event: 'call-declined' }, () => {
         setIsInCall(false);
         setIncomingCall(null);
       })
       .subscribe();
+      
+    channelRef.current = channel;
       
     return () => {
       supabase.removeChannel(channel);
@@ -76,28 +102,48 @@ const MessagesPage = () => {
   
   const startCall = async (recipient: ChatUser) => {
     try {
-      // Get user media
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      // Initialize WebRTC manager
+      webrtcRef.current = new WebRTCManager();
       
-      // Create peer connection
-      const peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
+      // Start local stream
+      const stream = await webrtcRef.current.startLocalStream(true, true);
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      
+      // Set up remote stream callback
+      webrtcRef.current.setOnRemoteStream((remoteStream) => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+        }
+        setCallStatus('connected');
       });
       
-      // Add local stream
-      stream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, stream);
+      webrtcRef.current.setOnCallEnded(() => {
+        endCall();
       });
       
-      // Create offer
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
+      // Set up signaling channel
+      const channel = supabase.channel(`calls-${recipient.user_id}`);
+      webrtcRef.current.setSignalingChannel({
+        send: async (message: SignalingMessage) => {
+          await channel.send({
+            type: 'broadcast',
+            event: message.type,
+            payload: {
+              ...message.payload,
+              callerId: user.id,
+              callerName: user.user_metadata?.display_name || user.email
+            }
+          });
+        }
+      });
       
-      // Send offer to recipient
-      await supabase.channel(`calls-${recipient.user_id}`).send({
+      // Create and send offer
+      const offer = await webrtcRef.current.createOffer();
+      
+      await channel.send({
         type: 'broadcast',
         event: 'call-offer',
         payload: {
@@ -108,9 +154,15 @@ const MessagesPage = () => {
       });
       
       setIsInCall(true);
+      setCallStatus('connecting');
       setActiveChat(recipient);
+      
+      // Start call timer
+      callTimerRef.current = setInterval(() => setCallTime(t => t + 1), 1000);
+      
     } catch (error) {
       console.error('Call setup error:', error);
+      toast.error('Failed to start call');
     }
   };
   
@@ -118,28 +170,46 @@ const MessagesPage = () => {
     if (!incomingCall) return;
     
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+      // Initialize WebRTC manager
+      webrtcRef.current = new WebRTCManager();
       
-      const peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' }
-        ]
+      // Start local stream
+      const stream = await webrtcRef.current.startLocalStream(true, true);
+      
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = stream;
+      }
+      
+      // Set up remote stream callback
+      webrtcRef.current.setOnRemoteStream((remoteStream) => {
+        if (remoteVideoRef.current) {
+          remoteVideoRef.current.srcObject = remoteStream;
+        }
+        setCallStatus('connected');
       });
       
-      // Add local stream
-      stream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, stream);
+      webrtcRef.current.setOnCallEnded(() => {
+        endCall();
       });
       
-      // Handle remote description
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingCall.signal));
+      // Set up signaling channel
+      const channel = supabase.channel(`calls-${incomingCall.caller.user_id}`);
+      webrtcRef.current.setSignalingChannel({
+        send: async (message: SignalingMessage) => {
+          await channel.send({
+            type: 'broadcast',
+            event: message.type,
+            payload: message.payload
+          });
+        }
+      });
       
-      // Create answer
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
+      // Handle offer and create answer
+      await webrtcRef.current.createAnswer(incomingCall.signal);
+      const answer = await webrtcRef.current.createAnswer(incomingCall.signal);
       
       // Send answer back
-      await supabase.channel(`calls-${incomingCall.caller.user_id}`).send({
+      await channel.send({
         type: 'broadcast',
         event: 'call-answer',
         payload: {
@@ -148,10 +218,16 @@ const MessagesPage = () => {
       });
       
       setIsInCall(true);
+      setCallStatus('connecting');
       setIncomingCall(null);
       setActiveChat(incomingCall.caller);
+      
+      // Start call timer
+      callTimerRef.current = setInterval(() => setCallTime(t => t + 1), 1000);
+      
     } catch (error) {
       console.error('Call accept error:', error);
+      toast.error('Failed to accept call');
     }
   };
   
@@ -171,6 +247,18 @@ const MessagesPage = () => {
   };
   
   const endCall = () => {
+    // Stop call timer
+    if (callTimerRef.current) {
+      clearInterval(callTimerRef.current);
+      callTimerRef.current = null;
+    }
+    
+    // End WebRTC call
+    if (webrtcRef.current) {
+      webrtcRef.current.endCall();
+      webrtcRef.current = null;
+    }
+    
     // Notify all parties that call ended
     const recipient = activeChat || incomingCall?.caller;
     if (recipient) {
@@ -189,6 +277,16 @@ const MessagesPage = () => {
     
     setIsInCall(false);
     setIncomingCall(null);
+    setCallTime(0);
+    setCallStatus('ringing');
+    
+    // Clear video elements
+    if (localVideoRef.current) {
+      localVideoRef.current.srcObject = null;
+    }
+    if (remoteVideoRef.current) {
+      remoteVideoRef.current.srcObject = null;
+    }
   };
   useEffect(() => {
     if (!searchUser.trim() || !user) { setSearchResults([]); return; }
@@ -252,6 +350,22 @@ const MessagesPage = () => {
       content,
     });
   };
+  
+  const toggleMute = () => {
+    if (webrtcRef.current) {
+      webrtcRef.current.toggleAudio(!muted);
+      setMuted(!muted);
+    }
+  };
+  
+  const toggleVideo = () => {
+    if (webrtcRef.current) {
+      webrtcRef.current.toggleVideo(!videoOn);
+      setVideoOn(!videoOn);
+    }
+  };
+  
+  const formatTime = (s: number) => `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   if (activeChat) {
     return (
@@ -275,21 +389,51 @@ const MessagesPage = () => {
             animate={{ opacity: 1 }}
             className="fixed inset-0 z-[65] bg-background flex flex-col"
           >
-            <div className="liquid-glass-elevated safe-area-top">
-              <div className="flex items-center justify-between px-5 py-4">
-                <div className="flex items-center gap-2">
-                  <Video className="w-5 h-5 text-primary" />
-                  <span className="text-headline text-foreground text-base">Video Call</span>
-                </div>
-                <button onClick={endCall} className="depth-press w-10 h-10 rounded-full bg-destructive flex items-center justify-center">
-                  <PhoneOff className="w-5 h-5 text-destructive-foreground" />
-                </button>
+            {/* Remote video (full screen) */}
+            <div className="flex-1 relative bg-black">
+              <video 
+                ref={remoteVideoRef} 
+                autoPlay 
+                playsInline 
+                className="w-full h-full object-cover" 
+              />
+              <div className="absolute inset-0 bg-gradient-to-b from-black/50 via-transparent to-black/50" />
+              
+              {/* Call info overlay */}
+              <div className="absolute top-0 left-0 right-0 safe-area-top p-4 text-center">
+                <p className="text-sm text-white/80 mb-1">
+                  {callStatus === 'ringing' && 'Ringing...'}
+                  {callStatus === 'connecting' && 'Connecting...'}
+                  {callStatus === 'connected' && 'Connected'}
+                </p>
+                <p className="text-lg font-semibold text-white">{activeChat.display_name || activeChat.username || 'User'}</p>
+                <p className="text-sm text-primary mt-1">{formatTime(callTime)}</p>
+              </div>
+              
+              {/* Local video (small overlay) */}
+              <div className="absolute bottom-24 right-4 w-28 h-40 rounded-2xl overflow-hidden liquid-glass-elevated shadow-2xl">
+                <video 
+                  ref={localVideoRef} 
+                  autoPlay 
+                  muted 
+                  playsInline 
+                  className="w-full h-full object-cover" 
+                />
               </div>
             </div>
-            <div className="flex-1 relative">
-              <video id="remote-video" autoPlay playsInline className="w-full h-full object-cover bg-black" />
-              <div className="absolute bottom-4 right-4 w-32 h-48 rounded-2xl overflow-hidden liquid-glass">
-                <video id="local-video" autoPlay muted playsInline className="w-full h-full object-cover" />
+            
+            {/* Controls */}
+            <div className="liquid-glass-elevated safe-area-bottom pb-6">
+              <div className="flex justify-center gap-4 px-4 py-4">
+                <button onClick={toggleMute} className="depth-press w-12 h-12 rounded-full liquid-glass-subtle flex items-center justify-center">
+                  {muted ? <MicOff className="w-5 h-5 text-destructive" /> : <Mic className="w-5 h-5 text-foreground" />}
+                </button>
+                <button onClick={toggleVideo} className="depth-press w-12 h-12 rounded-full liquid-glass-subtle flex items-center justify-center">
+                  {videoOn ? <Camera className="w-5 h-5 text-foreground" /> : <CameraOff className="w-5 h-5 text-destructive" />}
+                </button>
+                <button onClick={endCall} className="depth-press w-14 h-14 rounded-full bg-destructive flex items-center justify-center">
+                  <PhoneOff className="w-6 h-6 text-primary-foreground" />
+                </button>
               </div>
             </div>
           </motion.div>
