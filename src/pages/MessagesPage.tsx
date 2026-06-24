@@ -378,7 +378,19 @@ const MessagesPage = () => {
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-semibold">
                   {(activeChat.display_name || "U")[0].toUpperCase()}
                 </div>
-                <span className="text-headline text-foreground text-sm flex-1">{activeChat.display_name || activeChat.username || "User"}</span>
+                <span className="text-headline text-foreground text-sm flex-1">
+                  {activeChat.display_name || activeChat.username || "User"}
+                  {aiModeChats.has(activeChat.user_id) && (
+                    <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary">AI ON</span>
+                  )}
+                </span>
+                <button
+                  onClick={() => toggleAiMode(activeChat.user_id)}
+                  title="AI Mode — chats on your behalf, learns your style"
+                  className={`depth-press w-8 h-8 rounded-full flex items-center justify-center ${aiModeChats.has(activeChat.user_id) ? "bg-gradient-to-br from-primary to-primary/60" : "liquid-glass-subtle"}`}
+                >
+                  <Sparkles className={`w-4 h-4 ${aiModeChats.has(activeChat.user_id) ? "text-primary-foreground" : "text-foreground"}`} />
+                </button>
                 <button onClick={() => startCall(activeChat)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
                   <Phone className="w-4 h-4 text-foreground" />
                 </button>
