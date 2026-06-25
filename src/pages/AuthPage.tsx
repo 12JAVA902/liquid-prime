@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { lovable } from "@/integrations/lovable/index";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { Phone, Eye, EyeOff, Shield } from "lucide-react";
+import { Phone, Eye, EyeOff, Shield, ChevronDown, Clock, CheckCircle2, XCircle } from "lucide-react";
 import { validateEmail, validatePhone, validatePassword, sanitizeInput, sanitizeName, authRateLimiter, otpRateLimiter } from "@/utils/security";
+import { countryCodes, getCountryByCode, type CountryCode } from "@/utils/countryCodes";
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
@@ -19,6 +20,11 @@ const AuthPage = () => {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [passwordErrors, setPasswordErrors] = useState<string[]>([]);
+  const [selectedCountry, setSelectedCountry] = useState<CountryCode>(countryCodes[0]);
+  const [phoneNumber, setPhoneNumber] = useState("");
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false);
+  const [otpCountdown, setOtpCountdown] = useState(0);
+  const [verifyingOtp, setVerifyingOtp] = useState(false);
   const navigate = useNavigate();
 
   const handleEmailSubmit = async (e: React.FormEvent) => {
@@ -79,11 +85,12 @@ const AuthPage = () => {
   };
 
   const handlePhoneSendOtp = async () => {
-    if (!phone) { toast.error("Enter phone number"); return; }
+    if (!phoneNumber) { toast.error("Enter phone number"); return; }
     
-    const sanitizedPhone = sanitizeInput(phone);
+    const fullPhone = selectedCountry.dial + phoneNumber;
+    const sanitizedPhone = sanitizeInput(fullPhone);
     if (!validatePhone(sanitizedPhone)) {
-      toast.error("Please enter a valid phone number (e.g., +1234567890)");
+      toast.error("Please enter a valid phone number");
       return;
     }
     
@@ -125,6 +132,7 @@ const AuthPage = () => {
         if (error) throw error;
       }
       setOtpSent(true);
+      setOtpCountdown(60); // 60 second countdown
       toast.success("OTP sent to your phone!");
     } catch (err: any) {
       // Check if error is due to SMS provider not being configured
@@ -144,10 +152,11 @@ const AuthPage = () => {
       return;
     }
     
-    setLoading(true);
+    const fullPhone = selectedCountry.dial + phoneNumber;
+    setVerifyingOtp(true);
     try {
       const { error } = await supabase.auth.verifyOtp({
-        phone: sanitizeInput(phone),
+        phone: sanitizeInput(fullPhone),
         token: otp,
         type: isSignUp ? "sms" : "sms",
       });
@@ -158,7 +167,7 @@ const AuthPage = () => {
     } catch (err: any) {
       toast.error(err.message || "Invalid OTP");
     } finally {
-      setLoading(false);
+      setVerifyingOtp(false);
     }
   };
 
@@ -175,6 +184,17 @@ const AuthPage = () => {
       setLoading(false);
     }
   };
+
+  // Countdown timer for OTP resend
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (otpCountdown > 0) {
+      interval = setInterval(() => {
+        setOtpCountdown(prev => prev - 1);
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [otpCountdown]);
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
@@ -287,15 +307,51 @@ const AuthPage = () => {
               )}
               <div>
                 <label className="text-caption text-muted-foreground block mb-1.5">Phone Number</label>
-                <input 
-                  type="tel" 
-                  value={phone} 
-                  onChange={e => setPhone(e.target.value)} 
-                  className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" 
-                  placeholder="+1234567890" 
-                  maxLength={15}
-                />
-                <p className="text-[10px] text-muted-foreground mt-1">Format: +[country code][number] (e.g., +1234567890)</p>
+                <div className="flex gap-2">
+                  {/* Country Code Selector */}
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                      className="depth-press px-3 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm flex items-center gap-2 min-w-[100px] justify-between"
+                    >
+                      <span>{selectedCountry.flag}</span>
+                      <span className="text-xs">{selectedCountry.dial}</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+                    
+                    {showCountryDropdown && (
+                      <div className="absolute top-full left-0 mt-2 w-64 max-h-60 overflow-y-auto liquid-glass rounded-2xl z-50">
+                        {countryCodes.map((country) => (
+                          <button
+                            key={country.code}
+                            type="button"
+                            onClick={() => {
+                              setSelectedCountry(country);
+                              setShowCountryDropdown(false);
+                            }}
+                            className="w-full px-4 py-2 flex items-center gap-3 hover:bg-primary/10 text-left text-sm text-foreground"
+                          >
+                            <span>{country.flag}</span>
+                            <span>{country.name}</span>
+                            <span className="ml-auto text-muted-foreground">{country.dial}</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  
+                  {/* Phone Number Input */}
+                  <input 
+                    type="tel" 
+                    value={phoneNumber} 
+                    onChange={e => setPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))} 
+                    className="flex-1 px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30" 
+                    placeholder="1234567890" 
+                    maxLength={15}
+                  />
+                </div>
+                <p className="text-[10px] text-muted-foreground mt-1">Full number: {selectedCountry.dial}{phoneNumber}</p>
               </div>
               {isSignUp && !otpSent && (
                 <div>
@@ -329,19 +385,64 @@ const AuthPage = () => {
               {otpSent && (
                 <div>
                   <label className="text-caption text-muted-foreground block mb-1.5">Verification Code</label>
-                  <input 
-                    type="text" 
-                    value={otp} 
-                    onChange={e => setOtp(e.target.value.replace(/[^0-9]/g, ''))} 
-                    className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 text-center tracking-widest" 
-                    placeholder="123456" 
-                    maxLength={6} 
-                  />
-                  <p className="text-[10px] text-muted-foreground mt-1">Enter the 6-digit code sent to your phone</p>
+                  <div className="relative">
+                    <input 
+                      type="text" 
+                      value={otp} 
+                      onChange={e => setOtp(e.target.value.replace(/[^0-9]/g, ''))} 
+                      className={`w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none focus:ring-2 focus:ring-primary/30 text-center tracking-widest pr-10 ${
+                        verifyingOtp ? 'animate-pulse' : ''
+                      }`}
+                      placeholder="123456" 
+                      maxLength={6} 
+                      disabled={verifyingOtp}
+                    />
+                    {verifyingOtp && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <div className="w-4 h-4 border-2 border-primary/30 border-t-primary rounded-full animate-spin" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <p className="text-[10px] text-muted-foreground">
+                      Enter the 6-digit code sent to {selectedCountry.dial}{phoneNumber}
+                    </p>
+                    {otpCountdown > 0 ? (
+                      <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                        <Clock className="w-3 h-3" />
+                        <span>{otpCountdown}s</span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handlePhoneSendOtp}
+                        className="text-[10px] text-primary hover:underline"
+                      >
+                        Resend OTP
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
-              <button type="button" onClick={otpSent ? handlePhoneVerify : handlePhoneSendOtp} disabled={loading} className="depth-press w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
-                {loading ? "..." : otpSent ? "Verify OTP" : "Send OTP"}
+              <button 
+                type="button" 
+                onClick={otpSent ? handlePhoneVerify : handlePhoneSendOtp} 
+                disabled={loading || verifyingOtp} 
+                className="depth-press w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {loading || verifyingOtp ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                    {verifyingOtp ? "Verifying..." : "Sending..."}
+                  </>
+                ) : otpSent ? (
+                  <>
+                    <CheckCircle2 className="w-4 h-4" />
+                    Verify OTP
+                  </>
+                ) : (
+                  "Send OTP"
+                )}
               </button>
             </div>
           )}
