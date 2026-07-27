@@ -70,7 +70,7 @@ const App = () => (
             <Route path="/sports" element={<ProtectedRoute><SportsPage /></ProtectedRoute>} />
             <Route path="/movies" element={<ProtectedRoute><MoviesPage /></ProtectedRoute>} />
             <Route path="/discover" element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>} />
-            <Route path="/.lovable/oauth/consent" element={<ProtectedRoute><OAuthConsent /></ProtectedRoute>} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </MuteProvider>
