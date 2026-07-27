@@ -27,6 +27,12 @@ const AuthPage = () => {
   const [verifyingOtp, setVerifyingOtp] = useState(false);
   const navigate = useNavigate();
 
+  const getNextPath = () => {
+    const p = new URLSearchParams(window.location.search).get("next");
+    return p && p.startsWith("/") && !p.startsWith("//") ? p : "/";
+  };
+  const postAuthRedirect = () => window.location.origin + getNextPath();
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     

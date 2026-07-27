@@ -21,6 +21,7 @@ import CreatePostPage from "./pages/CreatePostPage";
 import SportsPage from "./pages/SportsPage";
 import MoviesPage from "./pages/MoviesPage";
 import DiscoverPage from "./pages/DiscoverPage";
+import OAuthConsent from "./pages/OAuthConsent";
 
 const queryClient = new QueryClient();
 
@@ -36,7 +37,12 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
 const AuthRoute = ({ children }: { children: React.ReactNode }) => {
   const { user, loading } = useAuth();
   if (loading) return <div className="min-h-screen bg-background" />;
-  if (user) return <Navigate to="/" replace />;
+  if (user) {
+    const params = new URLSearchParams(window.location.search);
+    const next = params.get("next");
+    const safe = next && next.startsWith("/") && !next.startsWith("//") ? next : "/";
+    return <Navigate to={safe} replace />;
+  }
   return <>{children}</>;
 };
 
@@ -64,6 +70,7 @@ const App = () => (
             <Route path="/sports" element={<ProtectedRoute><SportsPage /></ProtectedRoute>} />
             <Route path="/movies" element={<ProtectedRoute><MoviesPage /></ProtectedRoute>} />
             <Route path="/discover" element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>} />
+            <Route path="/.lovable/oauth/consent" element={<ProtectedRoute><OAuthConsent /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </MuteProvider>
