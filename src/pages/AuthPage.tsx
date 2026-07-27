@@ -74,14 +74,14 @@ const AuthPage = () => {
         const { error } = await supabase.auth.signUp({
           email: sanitizedEmail,
           password,
-          options: { data: { full_name: sanitizedFullName }, emailRedirectTo: window.location.origin },
+          options: { data: { full_name: sanitizedFullName }, emailRedirectTo: postAuthRedirect() },
         });
         if (error) throw error;
         toast.success("Account created! Check your email to verify.");
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: sanitizedEmail, password });
         if (error) throw error;
-        navigate("/");
+        navigate(getNextPath());
       }
     } catch (err: any) {
       toast.error(err.message || "Authentication failed");
@@ -169,7 +169,7 @@ const AuthPage = () => {
       if (error) throw error;
       toast.success("Verified!");
       otpRateLimiter.reset(); // Reset rate limiter on success
-      navigate("/");
+      navigate(getNextPath());
     } catch (err: any) {
       toast.error(err.message || "Invalid OTP");
     } finally {
@@ -180,10 +180,10 @@ const AuthPage = () => {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     try {
-      const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: window.location.origin });
+      const result = await lovable.auth.signInWithOAuth("google", { redirect_uri: postAuthRedirect() });
       if (result.error) { toast.error("Google sign-in failed"); return; }
       if (result.redirected) return;
-      navigate("/");
+      navigate(getNextPath());
     } catch (err: any) {
       toast.error(err.message || "Google sign-in failed");
     } finally {
