@@ -606,15 +606,41 @@ const CreatePostPage = () => {
             </div>
 
             {/* Capture controls */}
-            <div className="relative liquid-glass rounded-2xl overflow-hidden aspect-square bg-black">
+            <div
+              className="relative liquid-glass rounded-2xl overflow-hidden aspect-square bg-black touch-none"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onWheel={onWheelZoom}
+            >
               <video
                 ref={videoStreamRef}
                 autoPlay
                 playsInline
                 muted
                 className={`w-full h-full object-cover ${facing === "user" ? "mirror" : ""}`}
-                style={{ filter: filterCss, transform: `scale(${zoom})`, transformOrigin: "center" }}
+                style={{
+                  filter: filterCss,
+                  transform: `scale(${digitalZoom})`,
+                  transformOrigin: "center",
+                }}
               />
+              {/* Live AI-reconstructed frame layered on top past optical limits */}
+              <AnimatePresence>
+                {aiFrame && (
+                  <motion.img
+                    key={aiFrame}
+                    src={aiFrame}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.35 }}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ filter: filterCss }}
+                    alt="AI reconstructed zoom frame"
+                  />
+                )}
+              </AnimatePresence>
               {recording && (
                 <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-destructive/90 text-white text-xs font-semibold px-2 py-1 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
@@ -622,10 +648,34 @@ const CreatePostPage = () => {
                 </div>
               )}
               {zoom > 1 && (
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 px-2 py-1 rounded-full bg-background/70 backdrop-blur-md text-xs font-semibold text-foreground">
-                  {zoom.toFixed(1)}x
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/70 backdrop-blur-md text-xs font-semibold text-foreground">
+                  {zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}x
+                  {zoom >= 6 && aiLive && (
+                    <span className="flex items-center gap-1 text-primary">
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full bg-primary ${aiBusy ? "animate-pulse" : ""}`}
+                      />
+                      AI ∞
+                    </span>
+                  )}
                 </div>
               )}
+              {/* Quick zoom stops */}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                {[1, 5, 25, 100, 500].map((z) => (
+                  <button
+                    key={z}
+                    onClick={() => setZoom(z)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur-md ${
+                      Math.round(zoom) === z
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background/60 text-foreground"
+                    }`}
+                  >
+                    {z}x
+                  </button>
+                ))}
+              </div>
               <button
                 onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
                 className="absolute top-3 right-3 w-9 h-9 rounded-full bg-background/60 flex items-center justify-center backdrop-blur-md"
@@ -634,30 +684,51 @@ const CreatePostPage = () => {
               </button>
             </div>
 
-            {/* Zoom slider + AI Infinity Zoom */}
+            {/* Infinite zoom slider + live AI toggle */}
             <div className="liquid-glass rounded-2xl p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <ZoomIn className="w-4 h-4 text-primary" />
-                <span className="text-caption text-muted-foreground flex-1">Zoom · {zoom.toFixed(1)}x</span>
+                <span className="text-caption text-muted-foreground flex-1">
+                  Zoom · {zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}x / {MAX_ZOOM}x
+                  {nativeZoomMax > 1 && ` · lens ${nativeZoom.toFixed(1)}x`}
+                </span>
                 <button
-                  onClick={aiInfinityZoom}
-                  disabled={aiZooming}
-                  className="depth-press flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-xs font-semibold disabled:opacity-40"
+                  onClick={() => setAiLive((v) => !v)}
+                  className={`depth-press flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                    aiLive
+                      ? "bg-gradient-to-r from-primary to-primary/70 text-primary-foreground"
+                      : "liquid-glass-subtle text-foreground"
+                  }`}
                 >
                   <Wand2 className="w-3 h-3" />
-                  {aiZooming ? "Enhancing…" : "AI ∞ Zoom"}
+                  Live AI ∞ {aiLive ? "On" : "Off"}
                 </button>
               </div>
               <input
                 type="range"
-                min="1"
-                max="10"
-                step="0.1"
-                value={zoom}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                min="0"
+                max="1"
+                step="0.001"
+                value={Math.log(zoom) / Math.log(MAX_ZOOM)}
+                onChange={(e) =>
+                  setZoom(Math.pow(MAX_ZOOM, parseFloat(e.target.value)))
+                }
                 className="w-full accent-primary"
+                aria-label="Camera zoom"
               />
+              <p className="text-[10px] text-muted-foreground">
+                Pinch or scroll to zoom. Past {6}x the AI keeps repainting the frame live so zoom
+                stays sharp all the way to {MAX_ZOOM}x.
+              </p>
+              <button
+                onClick={aiInfinityZoom}
+                disabled={aiZooming}
+                className="depth-press w-full py-2 rounded-xl liquid-glass-subtle text-foreground text-xs font-semibold disabled:opacity-40"
+              >
+                {aiZooming ? "Enhancing…" : "Capture max-detail AI shot"}
+              </button>
             </div>
+
 
             {/* Filter row on camera too */}
             <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
