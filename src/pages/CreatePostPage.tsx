@@ -225,12 +225,24 @@ const CreatePostPage = () => {
     setMediaType(f.type.startsWith("video") ? "video" : "image");
   };
 
-  const snapPhoto = () => {
+  const snapPhoto = async () => {
+    // If a live AI-reconstructed frame is on screen, capture that instead
+    if (aiFrame) {
+      try {
+        const blob = await (await fetch(aiFrame)).blob();
+        setFile(new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg" }));
+        setPreview(URL.createObjectURL(blob));
+        setMediaType("image");
+        return;
+      } catch {
+        /* fall through to raw capture */
+      }
+    }
     if (!videoStreamRef.current || !canvasRef.current) return;
     const v = videoStreamRef.current;
     const c = canvasRef.current;
     // Honor digital zoom by cropping center
-    const z = Math.max(1, zoom);
+    const z = Math.max(1, digitalZoom);
     const sw = v.videoWidth / z;
     const sh = v.videoHeight / z;
     const sx = (v.videoWidth - sw) / 2;
@@ -258,24 +270,15 @@ const CreatePostPage = () => {
     if (!videoStreamRef.current || !canvasRef.current) return;
     setAiZooming(true);
     try {
-      const v = videoStreamRef.current;
-      const c = canvasRef.current;
-      const z = Math.max(1, zoom);
-      const sw = v.videoWidth / z;
-      const sh = v.videoHeight / z;
-      const sx = (v.videoWidth - sw) / 2;
-      const sy = (v.videoHeight - sh) / 2;
-      c.width = 1024;
-      c.height = 1024;
-      const ctx = c.getContext("2d")!;
-      ctx.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
-      const dataUrl = c.toDataURL("image/jpeg", 0.9);
+      const dataUrl = captureCrop(1024);
+      if (!dataUrl) throw new Error("Camera not ready");
       toast.loading("AI is enhancing zoom…", { id: "ai-zoom" });
       const { data, error } = await supabase.functions.invoke("ai-zoom", {
         body: { imageDataUrl: dataUrl },
       });
       if (error) throw error;
       if (!data?.imageUrl) throw new Error("No image returned");
+
       // Convert returned data URL to File
       const res = await fetch(data.imageUrl);
       const blob = await res.blob();
