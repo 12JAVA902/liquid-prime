@@ -106,6 +106,10 @@ const CreatePostPage = () => {
         }
         streamRef.current = stream;
         if (videoStreamRef.current) videoStreamRef.current.srcObject = stream;
+        // Detect hardware (optical/sensor) zoom range
+        const track = stream.getVideoTracks()[0];
+        const caps: any = track.getCapabilities?.() ?? {};
+        setNativeZoomMax(caps.zoom?.max ?? 1);
       } catch (err) {
         toast.error("Camera access denied");
         setMode("upload");
@@ -119,6 +123,99 @@ const CreatePostPage = () => {
       streamRef.current = null;
     };
   }, [mode, facing, preview]);
+
+  // ---- Infinite live zoom (1x → 500x) ----
+  const MAX_ZOOM = 500;
+  // Hardware zoom first, then digital crop for the rest
+  const nativeZoom = Math.min(zoom, nativeZoomMax || 1);
+  const digitalZoom = zoom / nativeZoom;
+
+  // Push hardware zoom to the camera track when supported
+  useEffect(() => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track || (nativeZoomMax || 1) <= 1) return;
+    track.applyConstraints({ advanced: [{ zoom: nativeZoom }] } as any).catch(() => {});
+  }, [nativeZoom, nativeZoomMax]);
+
+  // Crop the current camera frame at the active zoom level
+  const captureCrop = (size = 768): string | null => {
+    const v = videoStreamRef.current;
+    const c = canvasRef.current;
+    if (!v || !c || !v.videoWidth) return null;
+    const z = Math.max(1, digitalZoom);
+    const sw = v.videoWidth / z;
+    const sh = v.videoHeight / z;
+    const sx = (v.videoWidth - sw) / 2;
+    const sy = (v.videoHeight - sh) / 2;
+    c.width = size;
+    c.height = size;
+    const ctx = c.getContext("2d")!;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(v, sx, sy, sw, sh, 0, 0, size, size);
+    return c.toDataURL("image/jpeg", 0.82);
+  };
+
+  // Live AI reconstruction: as you keep zooming past what the lens can resolve,
+  // the AI continuously repaints the frame so zoom feels infinite.
+  useEffect(() => {
+    if (mode !== "camera" || preview || !aiLive) {
+      setAiFrame(null);
+      return;
+    }
+    if (zoom < 6) {
+      setAiFrame(null);
+      return;
+    }
+    if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
+    aiTimerRef.current = setTimeout(async () => {
+      if (aiInFlightRef.current) return;
+      const dataUrl = captureCrop(640);
+      if (!dataUrl) return;
+      aiInFlightRef.current = true;
+      setAiBusy(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("ai-zoom", {
+          body: {
+            imageDataUrl: dataUrl,
+            prompt: `This is a ${zoom.toFixed(0)}x digital zoom crop. Reconstruct it as a sharp, photorealistic image: recover fine texture, remove pixelation and noise, and invent plausible micro-detail consistent with the subject. Keep framing identical.`,
+          },
+        });
+        if (error) throw error;
+        if (data?.imageUrl) setAiFrame(data.imageUrl);
+      } catch {
+        /* silent — live enhancement is best-effort */
+      } finally {
+        aiInFlightRef.current = false;
+        setAiBusy(false);
+      }
+    }, 450);
+    return () => {
+      if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
+    };
+  }, [zoom, aiLive, mode, preview]);
+
+  // Pinch + wheel zoom gestures
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 2) return;
+    const [a, b] = [e.touches[0], e.touches[1]];
+    pinchRef.current = { dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), zoom };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length !== 2 || !pinchRef.current) return;
+    const [a, b] = [e.touches[0], e.touches[1]];
+    const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const next = pinchRef.current.zoom * (d / pinchRef.current.dist);
+    setZoom(Math.min(MAX_ZOOM, Math.max(1, next)));
+  };
+  const onTouchEnd = () => {
+    pinchRef.current = null;
+  };
+  const onWheelZoom = (e: React.WheelEvent) => {
+    e.preventDefault();
+    setZoom((z) => Math.min(MAX_ZOOM, Math.max(1, z * (e.deltaY < 0 ? 1.12 : 1 / 1.12))));
+  };
+
 
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
