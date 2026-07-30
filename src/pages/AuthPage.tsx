@@ -33,11 +33,26 @@ const AuthPage = () => {
   };
   const postAuthRedirect = () => window.location.origin + getNextPath();
 
+  const friendlyError = (msg: string) => {
+    const m = (msg || "").toLowerCase();
+    if (m.includes("invalid login credentials")) return "Wrong email or password. Try again or reset your password.";
+    if (m.includes("email not confirmed")) return "Please confirm your email first — check your inbox.";
+    if (m.includes("user already registered") || m.includes("already been registered"))
+      return "This account already exists. Switching you to sign in.";
+    if (m.includes("otp") && m.includes("expired")) return "That code expired. Tap Resend to get a new one.";
+    if (m.includes("token") && m.includes("invalid")) return "That code is incorrect. Please re-enter it.";
+    if (m.includes("sms") || m.includes("twilio") || m.includes("messagebird") || m.includes("phone provider") || m.includes("unsupported phone provider"))
+      return "Phone sign-in isn't active yet — an SMS provider must be connected. Use email or Google for now.";
+    if (m.includes("signups not allowed")) return "New sign-ups are currently disabled.";
+    if (m.includes("rate limit") || m.includes("too many")) return "Too many attempts. Please wait a moment and retry.";
+    return msg || "Something went wrong. Please try again.";
+  };
+
   const handleEmailSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     // Validate inputs
-    const sanitizedEmail = sanitizeInput(email.toLowerCase());
+    const sanitizedEmail = sanitizeInput(email.toLowerCase().trim());
     const sanitizedFullName = sanitizeName(fullName);
     
     if (!validateEmail(sanitizedEmail)) {
@@ -71,20 +86,53 @@ const AuthPage = () => {
     setLoading(true);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email: sanitizedEmail,
           password,
           options: { data: { full_name: sanitizedFullName }, emailRedirectTo: postAuthRedirect() },
         });
-        if (error) throw error;
-        toast.success("Account created! Check your email to verify.");
+        if (error) {
+          if ((error.message || "").toLowerCase().includes("already")) {
+            setIsSignUp(false);
+            toast.error(friendlyError(error.message));
+            return;
+          }
+          throw error;
+        }
+        if (data.session) {
+          authRateLimiter.reset?.();
+          navigate(getNextPath());
+        } else {
+          toast.success("Account created! Check your email to verify.");
+        }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: sanitizedEmail, password });
         if (error) throw error;
+        authRateLimiter.reset?.();
         navigate(getNextPath());
       }
     } catch (err: any) {
-      toast.error(err.message || "Authentication failed");
+      toast.error(friendlyError(err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    const sanitizedEmail = sanitizeInput(email.toLowerCase().trim());
+    if (!validateEmail(sanitizedEmail)) {
+      toast.error("Enter your email first, then tap reset");
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(sanitizedEmail, {
+        redirectTo: postAuthRedirect(),
+      });
+      if (error) throw error;
+      toast.success("Password reset link sent — check your email");
+    } catch (err: any) {
+      toast.error(friendlyError(err.message));
     } finally {
       setLoading(false);
     }
@@ -93,7 +141,7 @@ const AuthPage = () => {
   const handlePhoneSendOtp = async () => {
     if (!phoneNumber) { toast.error("Enter phone number"); return; }
     
-    const fullPhone = selectedCountry.dial + phoneNumber;
+    const fullPhone = selectedCountry.dial + phoneNumber.replace(/^0+/, "");
     const sanitizedPhone = sanitizeInput(fullPhone);
     if (!validatePhone(sanitizedPhone)) {
       toast.error("Please enter a valid phone number");
@@ -106,12 +154,13 @@ const AuthPage = () => {
         toast.error("Please enter your full name");
         return;
       }
-      
-      const passwordValidation = validatePassword(password);
-      if (!passwordValidation.valid) {
-        setPasswordErrors(passwordValidation.errors);
-        toast.error(passwordValidation.errors[0]);
-        return;
+      if (password) {
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.valid) {
+          setPasswordErrors(passwordValidation.errors);
+          toast.error(passwordValidation.errors[0]);
+          return;
+        }
       }
       setPasswordErrors([]);
     }
@@ -131,22 +180,30 @@ const AuthPage = () => {
           phone: sanitizedPhone,
           password: password || undefined,
           options: { data: { full_name: sanitizeName(fullName) } },
+        } as any);
+        if (error) {
+          // Number already exists → send a sign-in code instead
+          if ((error.message || "").toLowerCase().includes("already")) {
+            const { error: otpErr } = await supabase.auth.signInWithOtp({ phone: sanitizedPhone });
+            if (otpErr) throw otpErr;
+            setIsSignUp(false);
+          } else {
+            throw error;
+          }
+        }
+      } else {
+        const { error } = await supabase.auth.signInWithOtp({
+          phone: sanitizedPhone,
+          options: { shouldCreateUser: false },
         });
         if (error) throw error;
-      } else {
-        const { error } = await supabase.auth.signInWithOtp({ phone: sanitizedPhone });
-        if (error) throw error;
       }
+      setOtp("");
       setOtpSent(true);
       setOtpCountdown(60); // 60 second countdown
-      toast.success("OTP sent to your phone!");
+      toast.success(`Code sent to ${sanitizedPhone}`);
     } catch (err: any) {
-      // Check if error is due to SMS provider not being configured
-      if (err.message?.includes('SMS') || err.message?.includes('provider') || err.message?.includes('Twilio')) {
-        toast.error("SMS not configured. Please use email or contact admin to enable phone authentication.");
-      } else {
-        toast.error(err.message || "Failed to send OTP");
-      }
+      toast.error(friendlyError(err.message));
     } finally {
       setLoading(false);
     }
@@ -158,20 +215,25 @@ const AuthPage = () => {
       return;
     }
     
-    const fullPhone = selectedCountry.dial + phoneNumber;
+    const fullPhone = selectedCountry.dial + phoneNumber.replace(/^0+/, "");
     setVerifyingOtp(true);
     try {
       const { error } = await supabase.auth.verifyOtp({
         phone: sanitizeInput(fullPhone),
         token: otp,
-        type: isSignUp ? "sms" : "sms",
+        type: "sms",
       });
       if (error) throw error;
+      // Persist the name captured during phone sign-up
+      const name = sanitizeName(fullName);
+      if (name.length >= 2) {
+        await supabase.auth.updateUser({ data: { full_name: name } });
+      }
       toast.success("Verified!");
       otpRateLimiter.reset(); // Reset rate limiter on success
       navigate(getNextPath());
     } catch (err: any) {
-      toast.error(err.message || "Invalid OTP");
+      toast.error(friendlyError(err.message));
     } finally {
       setVerifyingOtp(false);
     }
@@ -190,6 +252,7 @@ const AuthPage = () => {
       setLoading(false);
     }
   };
+
 
   // Countdown timer for OTP resend
   useEffect(() => {
@@ -299,9 +362,19 @@ const AuthPage = () => {
                   </ul>
                 )}
               </div>
+              {!isSignUp && (
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-[11px] text-primary hover:underline"
+                >
+                  Forgot password?
+                </button>
+              )}
               <button type="submit" disabled={loading} className="depth-press w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
                 {loading ? "..." : isSignUp ? "Create Account" : "Sign In"}
               </button>
+
             </form>
           ) : (
             <div className="space-y-4">

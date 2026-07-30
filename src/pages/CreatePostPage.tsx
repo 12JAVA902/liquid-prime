@@ -71,6 +71,11 @@ const CreatePostPage = () => {
   const [recordSecs, setRecordSecs] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [aiZooming, setAiZooming] = useState(false);
+  // Live AI ∞ zoom
+  const [aiLive, setAiLive] = useState(true);
+  const [aiFrame, setAiFrame] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [nativeZoomMax, setNativeZoomMax] = useState(1);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const videoStreamRef = useRef<HTMLVideoElement>(null);
@@ -80,6 +85,9 @@ const CreatePostPage = () => {
   const chunksRef = useRef<Blob[]>([]);
   const previewRef = useRef<HTMLDivElement>(null);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aiInFlightRef = useRef(false);
+  const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
 
   // Start/stop camera
   useEffect(() => {
@@ -98,6 +106,10 @@ const CreatePostPage = () => {
         }
         streamRef.current = stream;
         if (videoStreamRef.current) videoStreamRef.current.srcObject = stream;
+        // Detect hardware (optical/sensor) zoom range
+        const track = stream.getVideoTracks()[0];
+        const caps: any = track.getCapabilities?.() ?? {};
+        setNativeZoomMax(caps.zoom?.max ?? 1);
       } catch (err) {
         toast.error("Camera access denied");
         setMode("upload");
@@ -112,6 +124,99 @@ const CreatePostPage = () => {
     };
   }, [mode, facing, preview]);
 
+  // ---- Infinite live zoom (1x → 500x) ----
+  const MAX_ZOOM = 500;
+  // Hardware zoom first, then digital crop for the rest
+  const nativeZoom = Math.min(zoom, nativeZoomMax || 1);
+  const digitalZoom = zoom / nativeZoom;
+
+  // Push hardware zoom to the camera track when supported
+  useEffect(() => {
+    const track = streamRef.current?.getVideoTracks()[0];
+    if (!track || (nativeZoomMax || 1) <= 1) return;
+    track.applyConstraints({ advanced: [{ zoom: nativeZoom }] } as any).catch(() => {});
+  }, [nativeZoom, nativeZoomMax]);
+
+  // Crop the current camera frame at the active zoom level
+  const captureCrop = (size = 768): string | null => {
+    const v = videoStreamRef.current;
+    const c = canvasRef.current;
+    if (!v || !c || !v.videoWidth) return null;
+    const z = Math.max(1, digitalZoom);
+    const sw = v.videoWidth / z;
+    const sh = v.videoHeight / z;
+    const sx = (v.videoWidth - sw) / 2;
+    const sy = (v.videoHeight - sh) / 2;
+    c.width = size;
+    c.height = size;
+    const ctx = c.getContext("2d")!;
+    ctx.imageSmoothingEnabled = true;
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(v, sx, sy, sw, sh, 0, 0, size, size);
+    return c.toDataURL("image/jpeg", 0.82);
+  };
+
+  // Live AI reconstruction: as you keep zooming past what the lens can resolve,
+  // the AI continuously repaints the frame so zoom feels infinite.
+  useEffect(() => {
+    if (mode !== "camera" || preview || !aiLive) {
+      setAiFrame(null);
+      return;
+    }
+    if (zoom < 6) {
+      setAiFrame(null);
+      return;
+    }
+    if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
+    aiTimerRef.current = setTimeout(async () => {
+      if (aiInFlightRef.current) return;
+      const dataUrl = captureCrop(640);
+      if (!dataUrl) return;
+      aiInFlightRef.current = true;
+      setAiBusy(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("ai-zoom", {
+          body: {
+            imageDataUrl: dataUrl,
+            prompt: `This is a ${zoom.toFixed(0)}x digital zoom crop. Reconstruct it as a sharp, photorealistic image: recover fine texture, remove pixelation and noise, and invent plausible micro-detail consistent with the subject. Keep framing identical.`,
+          },
+        });
+        if (error) throw error;
+        if (data?.imageUrl) setAiFrame(data.imageUrl);
+      } catch {
+        /* silent — live enhancement is best-effort */
+      } finally {
+        aiInFlightRef.current = false;
+        setAiBusy(false);
+      }
+    }, 450);
+    return () => {
+      if (aiTimerRef.current) clearTimeout(aiTimerRef.current);
+    };
+  }, [zoom, aiLive, mode, preview]);
+
+  // Pinch + wheel zoom gestures
+  const onTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length !== 2) return;
+    const [a, b] = [e.touches[0], e.touches[1]];
+    pinchRef.current = { dist: Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY), zoom };
+  };
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (e.touches.length !== 2 || !pinchRef.current) return;
+    const [a, b] = [e.touches[0], e.touches[1]];
+    const d = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+    const next = pinchRef.current.zoom * (d / pinchRef.current.dist);
+    setZoom(Math.min(MAX_ZOOM, Math.max(1, next)));
+  };
+  const onTouchEnd = () => {
+    pinchRef.current = null;
+  };
+  const onWheelZoom = (e: React.WheelEvent) => {
+    e.preventDefault();
+    setZoom((z) => Math.min(MAX_ZOOM, Math.max(1, z * (e.deltaY < 0 ? 1.12 : 1 / 1.12))));
+  };
+
+
   const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (!f) return;
@@ -120,12 +225,24 @@ const CreatePostPage = () => {
     setMediaType(f.type.startsWith("video") ? "video" : "image");
   };
 
-  const snapPhoto = () => {
+  const snapPhoto = async () => {
+    // If a live AI-reconstructed frame is on screen, capture that instead
+    if (aiFrame) {
+      try {
+        const blob = await (await fetch(aiFrame)).blob();
+        setFile(new File([blob], `photo-${Date.now()}.jpg`, { type: "image/jpeg" }));
+        setPreview(URL.createObjectURL(blob));
+        setMediaType("image");
+        return;
+      } catch {
+        /* fall through to raw capture */
+      }
+    }
     if (!videoStreamRef.current || !canvasRef.current) return;
     const v = videoStreamRef.current;
     const c = canvasRef.current;
     // Honor digital zoom by cropping center
-    const z = Math.max(1, zoom);
+    const z = Math.max(1, digitalZoom);
     const sw = v.videoWidth / z;
     const sh = v.videoHeight / z;
     const sx = (v.videoWidth - sw) / 2;
@@ -153,24 +270,15 @@ const CreatePostPage = () => {
     if (!videoStreamRef.current || !canvasRef.current) return;
     setAiZooming(true);
     try {
-      const v = videoStreamRef.current;
-      const c = canvasRef.current;
-      const z = Math.max(1, zoom);
-      const sw = v.videoWidth / z;
-      const sh = v.videoHeight / z;
-      const sx = (v.videoWidth - sw) / 2;
-      const sy = (v.videoHeight - sh) / 2;
-      c.width = 1024;
-      c.height = 1024;
-      const ctx = c.getContext("2d")!;
-      ctx.drawImage(v, sx, sy, sw, sh, 0, 0, c.width, c.height);
-      const dataUrl = c.toDataURL("image/jpeg", 0.9);
+      const dataUrl = captureCrop(1024);
+      if (!dataUrl) throw new Error("Camera not ready");
       toast.loading("AI is enhancing zoom…", { id: "ai-zoom" });
       const { data, error } = await supabase.functions.invoke("ai-zoom", {
         body: { imageDataUrl: dataUrl },
       });
       if (error) throw error;
       if (!data?.imageUrl) throw new Error("No image returned");
+
       // Convert returned data URL to File
       const res = await fetch(data.imageUrl);
       const blob = await res.blob();
@@ -498,15 +606,41 @@ const CreatePostPage = () => {
             </div>
 
             {/* Capture controls */}
-            <div className="relative liquid-glass rounded-2xl overflow-hidden aspect-square bg-black">
+            <div
+              className="relative liquid-glass rounded-2xl overflow-hidden aspect-square bg-black touch-none"
+              onTouchStart={onTouchStart}
+              onTouchMove={onTouchMove}
+              onTouchEnd={onTouchEnd}
+              onWheel={onWheelZoom}
+            >
               <video
                 ref={videoStreamRef}
                 autoPlay
                 playsInline
                 muted
                 className={`w-full h-full object-cover ${facing === "user" ? "mirror" : ""}`}
-                style={{ filter: filterCss, transform: `scale(${zoom})`, transformOrigin: "center" }}
+                style={{
+                  filter: filterCss,
+                  transform: `scale(${digitalZoom})`,
+                  transformOrigin: "center",
+                }}
               />
+              {/* Live AI-reconstructed frame layered on top past optical limits */}
+              <AnimatePresence>
+                {aiFrame && (
+                  <motion.img
+                    key={aiFrame}
+                    src={aiFrame}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.35 }}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    style={{ filter: filterCss }}
+                    alt="AI reconstructed zoom frame"
+                  />
+                )}
+              </AnimatePresence>
               {recording && (
                 <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-destructive/90 text-white text-xs font-semibold px-2 py-1 rounded-full">
                   <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
@@ -514,10 +648,34 @@ const CreatePostPage = () => {
                 </div>
               )}
               {zoom > 1 && (
-                <div className="absolute top-3 left-1/2 -translate-x-1/2 px-2 py-1 rounded-full bg-background/70 backdrop-blur-md text-xs font-semibold text-foreground">
-                  {zoom.toFixed(1)}x
+                <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-background/70 backdrop-blur-md text-xs font-semibold text-foreground">
+                  {zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}x
+                  {zoom >= 6 && aiLive && (
+                    <span className="flex items-center gap-1 text-primary">
+                      <span
+                        className={`w-1.5 h-1.5 rounded-full bg-primary ${aiBusy ? "animate-pulse" : ""}`}
+                      />
+                      AI ∞
+                    </span>
+                  )}
                 </div>
               )}
+              {/* Quick zoom stops */}
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-1.5">
+                {[1, 5, 25, 100, 500].map((z) => (
+                  <button
+                    key={z}
+                    onClick={() => setZoom(z)}
+                    className={`px-2.5 py-1 rounded-full text-[11px] font-semibold backdrop-blur-md ${
+                      Math.round(zoom) === z
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-background/60 text-foreground"
+                    }`}
+                  >
+                    {z}x
+                  </button>
+                ))}
+              </div>
               <button
                 onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
                 className="absolute top-3 right-3 w-9 h-9 rounded-full bg-background/60 flex items-center justify-center backdrop-blur-md"
@@ -526,30 +684,51 @@ const CreatePostPage = () => {
               </button>
             </div>
 
-            {/* Zoom slider + AI Infinity Zoom */}
+            {/* Infinite zoom slider + live AI toggle */}
             <div className="liquid-glass rounded-2xl p-3 space-y-2">
               <div className="flex items-center gap-2">
                 <ZoomIn className="w-4 h-4 text-primary" />
-                <span className="text-caption text-muted-foreground flex-1">Zoom · {zoom.toFixed(1)}x</span>
+                <span className="text-caption text-muted-foreground flex-1">
+                  Zoom · {zoom < 10 ? zoom.toFixed(1) : Math.round(zoom)}x / {MAX_ZOOM}x
+                  {nativeZoomMax > 1 && ` · lens ${nativeZoom.toFixed(1)}x`}
+                </span>
                 <button
-                  onClick={aiInfinityZoom}
-                  disabled={aiZooming}
-                  className="depth-press flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gradient-to-r from-primary to-primary/70 text-primary-foreground text-xs font-semibold disabled:opacity-40"
+                  onClick={() => setAiLive((v) => !v)}
+                  className={`depth-press flex items-center gap-1 px-3 py-1.5 rounded-xl text-xs font-semibold ${
+                    aiLive
+                      ? "bg-gradient-to-r from-primary to-primary/70 text-primary-foreground"
+                      : "liquid-glass-subtle text-foreground"
+                  }`}
                 >
                   <Wand2 className="w-3 h-3" />
-                  {aiZooming ? "Enhancing…" : "AI ∞ Zoom"}
+                  Live AI ∞ {aiLive ? "On" : "Off"}
                 </button>
               </div>
               <input
                 type="range"
-                min="1"
-                max="10"
-                step="0.1"
-                value={zoom}
-                onChange={(e) => setZoom(parseFloat(e.target.value))}
+                min="0"
+                max="1"
+                step="0.001"
+                value={Math.log(zoom) / Math.log(MAX_ZOOM)}
+                onChange={(e) =>
+                  setZoom(Math.pow(MAX_ZOOM, parseFloat(e.target.value)))
+                }
                 className="w-full accent-primary"
+                aria-label="Camera zoom"
               />
+              <p className="text-[10px] text-muted-foreground">
+                Pinch or scroll to zoom. Past {6}x the AI keeps repainting the frame live so zoom
+                stays sharp all the way to {MAX_ZOOM}x.
+              </p>
+              <button
+                onClick={aiInfinityZoom}
+                disabled={aiZooming}
+                className="depth-press w-full py-2 rounded-xl liquid-glass-subtle text-foreground text-xs font-semibold disabled:opacity-40"
+              >
+                {aiZooming ? "Enhancing…" : "Capture max-detail AI shot"}
+              </button>
             </div>
+
 
             {/* Filter row on camera too */}
             <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
