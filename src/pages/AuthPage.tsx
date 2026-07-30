@@ -362,9 +362,19 @@ const AuthPage = () => {
                   </ul>
                 )}
               </div>
+              {!isSignUp && (
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
+                  className="text-[11px] text-primary hover:underline"
+                >
+                  Forgot password?
+                </button>
+              )}
               <button type="submit" disabled={loading} className="depth-press w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50">
                 {loading ? "..." : isSignUp ? "Create Account" : "Sign In"}
               </button>
+
             </form>
           ) : (
             <div className="space-y-4">
