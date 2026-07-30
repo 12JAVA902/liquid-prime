@@ -71,6 +71,11 @@ const CreatePostPage = () => {
   const [recordSecs, setRecordSecs] = useState(0);
   const [zoom, setZoom] = useState(1);
   const [aiZooming, setAiZooming] = useState(false);
+  // Live AI ∞ zoom
+  const [aiLive, setAiLive] = useState(true);
+  const [aiFrame, setAiFrame] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
+  const [nativeZoomMax, setNativeZoomMax] = useState(1);
 
   const fileRef = useRef<HTMLInputElement>(null);
   const videoStreamRef = useRef<HTMLVideoElement>(null);
@@ -80,6 +85,9 @@ const CreatePostPage = () => {
   const chunksRef = useRef<Blob[]>([]);
   const previewRef = useRef<HTMLDivElement>(null);
   const recordTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const aiTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const aiInFlightRef = useRef(false);
+  const pinchRef = useRef<{ dist: number; zoom: number } | null>(null);
 
   // Start/stop camera
   useEffect(() => {
