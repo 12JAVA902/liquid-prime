@@ -22,6 +22,7 @@ import SportsPage from "./pages/SportsPage";
 import MoviesPage from "./pages/MoviesPage";
 import DiscoverPage from "./pages/DiscoverPage";
 import OAuthConsent from "./pages/OAuthConsent";
+import GlobalRealtimeListener from "./components/GlobalRealtimeListener";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <MuteProvider>
+          <GlobalRealtimeListener />
           <Routes>
             <Route path="/welcome" element={<AuthRoute><WelcomePage /></AuthRoute>} />
             <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
