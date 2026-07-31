@@ -1,3 +1,4 @@
+import { authHeader } from "@/utils/authFetch";
 import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Sparkles, Mic, MicOff, Volume2 } from "lucide-react";
@@ -186,7 +187,7 @@ const PrimeAIChat = ({ open, onClose, onOpen }: { open: boolean; onClose: () => 
     try {
       const resp = await fetch(CHAT_URL, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+        headers: { "Content-Type": "application/json", Authorization: await authHeader() },
         body: JSON.stringify({ messages: [...messages, userMsg] }),
       });
       if (!resp.ok) { const e = await resp.json().catch(() => ({})); throw new Error(e.error || `Error ${resp.status}`); }

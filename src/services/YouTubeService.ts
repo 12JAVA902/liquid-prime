@@ -1,3 +1,5 @@
+import { authHeader } from "@/utils/authFetch";
+
 interface YouTubeSearchResult {
   id: string;
   title: string;
@@ -16,145 +18,114 @@ interface DownloadProgress {
   error?: string;
 }
 
+// All YouTube Data API access goes through server-side edge functions so the
+// API key is never shipped to the browser.
+const SEARCH_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-search`;
+const DOWNLOAD_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-download`;
+
 class YouTubeService {
-  private API_KEY = import.meta.env.VITE_YOUTUBE_API_KEY;
-  private BASE_URL = 'https://www.googleapis.com/youtube/v3';
+  private async post(url: string, body: unknown): Promise<Response> {
+    return fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: await authHeader(),
+      },
+      body: JSON.stringify(body),
+    });
+  }
 
   async searchMusic(query: string, maxResults: number = 50): Promise<YouTubeSearchResult[]> {
     try {
-      const searchResponse = await fetch(
-        `${this.BASE_URL}/search?part=snippet&type=video&q=${encodeURIComponent(query)}&maxResults=${maxResults}&videoCategoryId=10&key=${this.API_KEY}`
-      );
-      
-      if (!searchResponse.ok) {
-        throw new Error('YouTube API search failed');
-      }
+      const response = await this.post(SEARCH_FN, { mode: 'search', query, maxResults });
+      if (!response.ok) throw new Error('YouTube search failed');
 
-      const searchData = await searchResponse.json();
-      const videoIds = searchData.items.map((item: any) => item.id.videoId).join(',');
+      const { search, details } = await response.json();
+      const detailItems: any[] = details?.items ?? [];
 
-      // Get video details including duration
-      const detailsResponse = await fetch(
-        `${this.BASE_URL}/videos?part=contentDetails,statistics&id=${videoIds}&key=${this.API_KEY}`
-      );
+      return (search?.items ?? []).map((item: any) => {
+        const videoId = item.id?.videoId;
+        const detail = detailItems.find((d) => d.id === videoId);
+        const duration = detail ? this.formatDuration(detail.contentDetails?.duration ?? '') : '0:00';
+        const viewCount = detail ? this.formatViewCount(detail.statistics?.viewCount ?? '0') : '0';
 
-      if (!detailsResponse.ok) {
-        throw new Error('Failed to fetch video details');
-      }
-
-      const detailsData = await detailsResponse.json();
-
-      return searchData.items.map((item: any, index: number) => {
-        const details = detailsData.items[index];
-        const duration = this.formatDuration(details.contentDetails.duration);
-        const viewCount = this.formatViewCount(details.statistics.viewCount);
-
-        // Extract artist from title (common format: "Song Title - Artist Name")
-        const titleParts = item.snippet.title.split(' - ');
-        const title = titleParts[0] || item.snippet.title;
-        const artist = titleParts[1] || item.snippet.channelTitle;
+        const titleParts = (item.snippet?.title ?? '').split(' - ');
+        const title = titleParts[0] || item.snippet?.title || 'Unknown';
+        const artist = titleParts[1] || item.snippet?.channelTitle || 'Unknown';
 
         return {
-          id: `youtube-${item.id.videoId}`,
+          id: `youtube-${videoId}`,
           title: title.trim(),
           artist: artist.trim(),
           duration,
-          thumbnail: item.snippet.thumbnails.high.url,
-          youtubeId: item.id.videoId,
+          thumbnail: item.snippet?.thumbnails?.high?.url ?? '',
+          youtubeId: videoId,
           viewCount,
-          publishedAt: item.snippet.publishedAt
+          publishedAt: item.snippet?.publishedAt ?? '',
         };
       });
     } catch (error) {
-      console.error('YouTube search error:', error);
+      console.error('YouTube search error');
       return [];
     }
   }
 
   async getTrendingMusic(region: string = 'US', maxResults: number = 50): Promise<YouTubeSearchResult[]> {
     try {
-      const response = await fetch(
-        `${this.BASE_URL}/videos?part=snippet,contentDetails,statistics&chart=mostPopular&videoCategoryId=10&regionCode=${region}&maxResults=${maxResults}&key=${this.API_KEY}`
-      );
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch trending music');
-      }
+      const response = await this.post(SEARCH_FN, { mode: 'trending', region, maxResults });
+      if (!response.ok) throw new Error('Failed to fetch trending music');
 
       const data = await response.json();
 
-      return data.items.map((item: any) => {
-        const duration = this.formatDuration(item.contentDetails.duration);
-        const viewCount = this.formatViewCount(item.statistics.viewCount);
+      return (data.items ?? []).map((item: any) => {
+        const duration = this.formatDuration(item.contentDetails?.duration ?? '');
+        const viewCount = this.formatViewCount(item.statistics?.viewCount ?? '0');
 
-        // Extract artist from title
-        const titleParts = item.snippet.title.split(' - ');
-        const title = titleParts[0] || item.snippet.title;
-        const artist = titleParts[1] || item.snippet.channelTitle;
+        const titleParts = (item.snippet?.title ?? '').split(' - ');
+        const title = titleParts[0] || item.snippet?.title || 'Unknown';
+        const artist = titleParts[1] || item.snippet?.channelTitle || 'Unknown';
 
         return {
           id: `youtube-${item.id}`,
           title: title.trim(),
           artist: artist.trim(),
           duration,
-          thumbnail: item.snippet.thumbnails.high.url,
+          thumbnail: item.snippet?.thumbnails?.high?.url ?? '',
           youtubeId: item.id,
           viewCount,
-          publishedAt: item.snippet.publishedAt
+          publishedAt: item.snippet?.publishedAt ?? '',
         };
       });
     } catch (error) {
-      console.error('Trending music error:', error);
+      console.error('Trending music error');
       return [];
     }
   }
 
   async downloadVideo(videoId: string, title: string, onProgress?: (progress: number) => void): Promise<Blob> {
-    try {
-      // Use a Supabase function as a proxy to download YouTube audio
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/youtube-download`,
-        {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ videoId, title })
-        }
-      );
+    const response = await this.post(DOWNLOAD_FN, { videoId, title });
+    if (!response.ok) throw new Error('Download failed');
 
-      if (!response.ok) {
-        throw new Error('Download failed');
+    const contentLength = response.headers.get('Content-Length');
+    let loaded = 0;
+    const reader = response.body?.getReader();
+    const chunks: Uint8Array[] = [];
+
+    if (!reader) throw new Error('No response body');
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      chunks.push(value);
+      loaded += value.length;
+
+      if (onProgress && contentLength) {
+        onProgress(Math.round((loaded / parseInt(contentLength)) * 100));
       }
-
-      const contentLength = response.headers.get('Content-Length');
-      let loaded = 0;
-      const reader = response.body?.getReader();
-      const chunks: Uint8Array[] = [];
-
-      if (!reader) {
-        throw new Error('No response body');
-      }
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        chunks.push(value);
-        loaded += value.length;
-
-        if (onProgress && contentLength) {
-          const progress = (loaded / parseInt(contentLength)) * 100;
-          onProgress(Math.round(progress));
-        }
-      }
-
-      return new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
-    } catch (error) {
-      console.error('Download error:', error);
-      throw error;
     }
+
+    return new Blob(chunks as BlobPart[], { type: 'audio/mpeg' });
   }
 
   private formatDuration(duration: string): string {
@@ -173,11 +144,8 @@ class YouTubeService {
 
   private formatViewCount(viewCount: string): string {
     const count = parseInt(viewCount);
-    if (count >= 1000000) {
-      return `${(count / 1000000).toFixed(1)}M`;
-    } else if (count >= 1000) {
-      return `${(count / 1000).toFixed(1)}K`;
-    }
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
     return count.toString();
   }
 }
