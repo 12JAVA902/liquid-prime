@@ -199,13 +199,15 @@ const AuthPage = () => {
         toast.error("Please enter your full name");
         return;
       }
-      if (password) {
-        const passwordValidation = validatePassword(password);
-        if (!passwordValidation.valid) {
-          setPasswordErrors(passwordValidation.errors);
-          toast.error(passwordValidation.errors[0]);
-          return;
-        }
+      if (!password) {
+        toast.error("Create a password — you'll use it to sign in with your phone number");
+        return;
+      }
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        setPasswordErrors(passwordValidation.errors);
+        toast.error(passwordValidation.errors[0]);
+        return;
       }
       setPasswordErrors([]);
     }
