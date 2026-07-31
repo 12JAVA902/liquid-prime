@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Download, User } from "lucide-react";
+import { Sparkles, Download, User, Smartphone, Monitor } from "lucide-react";
 import { toast } from "sonner";
+
+const RELEASE_BASE = "https://github.com/12JAVA902/liquid-prime/releases";
 
 const GooeyBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
