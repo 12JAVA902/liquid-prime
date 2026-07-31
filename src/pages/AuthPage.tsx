@@ -525,9 +525,11 @@ const AuthPage = () => {
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1">Full number: {selectedCountry.dial}{phoneNumber}</p>
               </div>
-              {isSignUp && !otpSent && (
+              {!otpSent && (
                 <div>
-                  <label className="text-caption text-muted-foreground block mb-1.5">Password</label>
+                  <label className="text-caption text-muted-foreground block mb-1.5">
+                    {isSignUp ? "Create Password" : "Password"}
+                  </label>
                   <div className="relative">
                     <input 
                       type={showPassword ? "text" : "password"} 
