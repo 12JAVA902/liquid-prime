@@ -365,7 +365,45 @@ const AuthPage = () => {
             </button>
           </div>
 
-          {authMethod === "email" ? (
+          {authMethod === "email" && emailOtpSent ? (
+            <div className="space-y-4">
+              <div>
+                <label className="text-caption text-muted-foreground block mb-1.5">Email verification code</label>
+                <input
+                  value={emailOtp}
+                  onChange={e => setEmailOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                  maxLength={6}
+                  inputMode="numeric"
+                  placeholder="000000"
+                  className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-center text-2xl tracking-[0.5em] font-mono outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <p className="text-caption text-muted-foreground mt-2">
+                  Enter the 6-digit code sent to {email}
+                </p>
+                {otpCountdown > 0 ? (
+                  <p className="text-[11px] text-muted-foreground mt-1">Resend available in {otpCountdown}s</p>
+                ) : (
+                  <button type="button" onClick={handleEmailResend} className="text-[11px] text-primary hover:underline mt-1">
+                    Resend code
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={handleEmailVerify}
+                disabled={verifyingOtp}
+                className="depth-press w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+              >
+                {verifyingOtp ? "Verifying…" : "Verify & continue"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setEmailOtpSent(false); setEmailOtp(""); }}
+                className="text-[11px] text-muted-foreground hover:text-foreground w-full"
+              >
+                Use a different email
+              </button>
+            </div>
+          ) : authMethod === "email" ? (
             <form onSubmit={handleEmailSubmit} className="space-y-4">
               <AnimatePresence mode="wait">
                 {isSignUp && (
