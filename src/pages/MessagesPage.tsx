@@ -36,8 +36,6 @@ const MessagesPage = () => {
   const [msg, setMsg] = useState("");
   const [searchUser, setSearchUser] = useState("");
   const [searchResults, setSearchResults] = useState<ChatUser[]>([]);
-  const [incomingCall, setIncomingCall] = useState<{ caller: ChatUser; signal: any } | null>(null);
-  const [isInCall, setIsInCall] = useState(false);
   const [aiModeChats, setAiModeChats] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem("ai-mode-chats") || "[]")); } catch { return new Set(); }
   });
@@ -230,7 +228,7 @@ const MessagesPage = () => {
                 >
                   <Sparkles className={`w-4 h-4 ${aiModeChats.has(activeChat.user_id) ? "text-primary-foreground" : "text-foreground"}`} />
                 </button>
-                <button onClick={() => startCall(activeChat)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
+                <button onClick={() => startCall(activeChat, true)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
                   <Phone className="w-4 h-4 text-foreground" />
                 </button>
                 <button onClick={() => startCall(activeChat)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
