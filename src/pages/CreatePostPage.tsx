@@ -607,7 +607,7 @@ const CreatePostPage = () => {
 
             {/* Capture controls */}
             <div
-              className="relative liquid-glass rounded-2xl overflow-hidden aspect-square bg-black touch-none"
+              className="relative flex-1 min-h-[45vh] liquid-glass rounded-3xl overflow-hidden bg-black touch-none"
               onTouchStart={onTouchStart}
               onTouchMove={onTouchMove}
               onTouchEnd={onTouchEnd}
