@@ -554,6 +554,11 @@ const AuthPage = () => {
                       ))}
                     </ul>
                   )}
+                  {!isSignUp && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Leave empty to sign in with an SMS code instead.
+                    </p>
+                  )}
                 </div>
               )}
               {otpSent && (
