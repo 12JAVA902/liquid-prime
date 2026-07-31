@@ -208,48 +208,6 @@ const MessagesPage = () => {
 
   if (activeChat) {
     return (
-      <>
-        {/* Incoming Call Modal */}
-        <AnimatePresence>
-          {incomingCall && !isInCall && (
-            <IncomingCallModal
-              isOpen={true}
-              callerName={incomingCall.caller.display_name || incomingCall.caller.username || 'Unknown'}
-              onJoin={acceptCall}
-              onDecline={declineCall}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Active Call View */}
-        {isInCall && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed inset-0 z-[65] bg-background flex flex-col"
-          >
-            <div className="liquid-glass-elevated safe-area-top">
-              <div className="flex items-center justify-between px-5 py-4">
-                <div className="flex items-center gap-2">
-                  <Video className="w-5 h-5 text-primary" />
-                  <span className="text-headline text-foreground text-base">Video Call</span>
-                </div>
-                <button onClick={endCall} className="depth-press w-10 h-10 rounded-full bg-destructive flex items-center justify-center">
-                  <PhoneOff className="w-5 h-5 text-destructive-foreground" />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 relative">
-              <video id="remote-video" autoPlay playsInline className="w-full h-full object-cover bg-black" />
-              <div className="absolute bottom-4 right-4 w-32 h-48 rounded-2xl overflow-hidden liquid-glass">
-                <video id="local-video" autoPlay muted playsInline className="w-full h-full object-cover" />
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Chat View */}
-        {!isInCall && (
           <div className="min-h-screen bg-background flex flex-col">
             <div className="liquid-glass-elevated safe-area-top">
               <div className="flex items-center gap-3 px-4 py-3 relative z-10">
