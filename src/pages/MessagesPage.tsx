@@ -314,9 +314,8 @@ const MessagesPage = () => {
               </div>
             </div>
           </div>
-        )}
-      </>
     );
+  }
   }
 
   const displayList = searchUser.trim() ? searchResults : conversations;
