@@ -144,7 +144,7 @@ const MoviesPage = () => {
 
   const fetchMovies = async (endpoint: string): Promise<Movie[]> => {
     const res = await fetch(`${FUNC_URL}?endpoint=${encodeURIComponent(endpoint)}`, {
-      headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+      headers: { Authorization: await authHeader() },
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
@@ -169,7 +169,7 @@ const MoviesPage = () => {
     const t = setTimeout(async () => {
       try {
         const res = await fetch(`${FUNC_URL}?endpoint=search/movie&query=${encodeURIComponent(search)}`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: { Authorization: await authHeader() },
         });
         const data = await res.json();
         setSearchResults(data.results || []);
@@ -187,10 +187,10 @@ const MoviesPage = () => {
     try {
       const [videosRes, creditsRes] = await Promise.all([
         fetch(`${FUNC_URL}?endpoint=movie/${movie.id}/videos`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: { Authorization: await authHeader() },
         }),
         fetch(`${FUNC_URL}?endpoint=movie/${movie.id}/credits`, {
-          headers: { Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}` },
+          headers: { Authorization: await authHeader() },
         }),
       ]);
       const videos = await videosRes.json();

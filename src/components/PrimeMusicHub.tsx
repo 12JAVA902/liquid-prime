@@ -553,7 +553,7 @@ const PrimeMusicHub = ({ open, onClose }: { open: boolean; onClose: () => void }
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/gemini-recommendations`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+          Authorization: await authHeader(),
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
