@@ -105,7 +105,10 @@ const AuthPage = () => {
           authRateLimiter.reset?.();
           navigate(getNextPath());
         } else {
-          toast.success("Account created! Check your email to verify.");
+          setEmailOtp("");
+          setEmailOtpSent(true);
+          setOtpCountdown(60);
+          toast.success("We sent a 6-digit code to your email — enter it below.");
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: sanitizedEmail, password });
