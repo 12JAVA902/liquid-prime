@@ -119,146 +119,26 @@ const MessagesPage = () => {
     fetchConversations();
   }, [user]);
 
-  // WebRTC signaling for incoming calls
-  useEffect(() => {
+  // Ring the recipient, then open the liquid-glass call screen (real WebRTC)
+  const startCall = async (recipient: ChatUser, audioOnly = false) => {
     if (!user) return;
-    
-    const channel = supabase.channel(`calls-${user.id}`);
-    
-    channel
-      .on('broadcast', { event: 'incoming-call' }, (payload: any) => {
-        const caller = conversations.find(c => c.user_id === payload.callerId);
-        if (caller) {
-          setIncomingCall({ caller, signal: payload.signal });
-        }
-      })
-      .on('broadcast', { event: 'call-ended' }, () => {
-        setIsInCall(false);
-        setIncomingCall(null);
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, conversations]);
-  
-  const startCall = async (recipient: ChatUser) => {
     try {
-      // Get user media
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      
-      // Create peer connection
-      const peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      });
-      
-      // Add local stream
-      stream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, stream);
-      });
-      
-      // Create offer
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-      
-      // Send offer to recipient
       await supabase.channel(`calls-${recipient.user_id}`).send({
-        type: 'broadcast',
-        event: 'call-offer',
+        type: "broadcast",
+        event: "ring",
         payload: {
           callerId: user.id,
-          callerName: user.user_metadata?.display_name || user.email,
-          offer: offer
-        }
+          callerName: user.user_metadata?.display_name || user.user_metadata?.full_name || user.email,
+          audio: audioOnly,
+        },
       });
-      
-      setIsInCall(true);
-      setActiveChat(recipient);
-    } catch (error) {
-      console.error('Call setup error:', error);
+    } catch (err) {
+      console.error("Ring failed:", err);
     }
+    navigate(`/call/${recipient.user_id}${audioOnly ? "?audio=1" : ""}`);
   };
-  
-  const acceptCall = async () => {
-    if (!incomingCall) return;
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      
-      const peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' }
-        ]
-      });
-      
-      // Add local stream
-      stream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, stream);
-      });
-      
-      // Handle remote description
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingCall.signal));
-      
-      // Create answer
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-      
-      // Send answer back
-      await supabase.channel(`calls-${incomingCall.caller.user_id}`).send({
-        type: 'broadcast',
-        event: 'call-answer',
-        payload: {
-          answer: answer
-        }
-      });
-      
-      setIsInCall(true);
-      setIncomingCall(null);
-      setActiveChat(incomingCall.caller);
-    } catch (error) {
-      console.error('Call accept error:', error);
-    }
-  };
-  
-  const declineCall = () => {
-    if (!incomingCall) return;
-    
-    // Send decline signal
-    supabase.channel(`calls-${incomingCall.caller.user_id}`).send({
-      type: 'broadcast',
-      event: 'call-declined',
-      payload: {
-        recipientId: user?.id
-      }
-    });
-    
-    setIncomingCall(null);
-  };
-  
-  const endCall = () => {
-    // Notify all parties that call ended
-    const recipient = activeChat || incomingCall?.caller;
-    if (recipient) {
-      supabase.channel(`calls-${recipient.user_id}`).send({
-        type: 'broadcast',
-        event: 'call-ended'
-      });
-    }
-    
-    if (user) {
-      supabase.channel(`calls-${user.id}`).send({
-        type: 'broadcast',
-        event: 'call-ended'
-      });
-    }
-    
-    setIsInCall(false);
-    setIncomingCall(null);
-  };
+
+
   useEffect(() => {
     if (!searchUser.trim() || !user) { setSearchResults([]); return; }
     const search = async () => {
