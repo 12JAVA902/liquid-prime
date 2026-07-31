@@ -225,7 +225,7 @@ const AuthPage = () => {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           phone: sanitizedPhone,
-          password: password || undefined,
+          password,
           options: { data: { full_name: sanitizeName(fullName) } },
         } as any);
         if (error) {
