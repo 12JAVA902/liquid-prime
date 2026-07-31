@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Phone, PhoneOff, User, Volume2 } from 'lucide-react';
+import { Phone, PhoneOff, User } from 'lucide-react';
+import { useRingtone } from '@/hooks/useRingtone';
 
 interface IncomingCallModalProps {
   isOpen: boolean;
@@ -11,49 +11,8 @@ interface IncomingCallModalProps {
 }
 
 const IncomingCallModal = ({ isOpen, callerName, callerAvatar, onJoin, onDecline }: IncomingCallModalProps) => {
-  const [ringing, setRinging] = useState(false);
-  const audioRef = useRef<HTMLAudioElement>(null);
-
-  // Ringing sound effect
-  useEffect(() => {
-    if (isOpen && !ringing) {
-      setRinging(true);
-      // Create a simple ringing tone
-      const audioContext = new (window.AudioContext || (window as any).webkitAudioContext)();
-      const oscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      
-      oscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      
-      oscillator.frequency.value = 800; // Ringing frequency
-      gainNode.gain.value = 0.1; // Volume
-      
-      oscillator.start();
-      
-      // Ring pattern
-      const ringInterval = setInterval(() => {
-        oscillator.frequency.value = oscillator.frequency.value === 800 ? 600 : 800;
-      }, 1000);
-      
-      // Store for cleanup
-      (audioRef.current as any) = { oscillator, gainNode, ringInterval };
-      
-      return () => {
-        clearInterval(ringInterval);
-        oscillator.stop();
-        setRinging(false);
-      };
-    }
-    
-    return () => {
-      // Cleanup ringing sound
-      if (audioRef.current && (audioRef.current as any).oscillator) {
-        (audioRef.current as any).oscillator.stop();
-        clearInterval((audioRef.current as any).ringInterval);
-      }
-    };
-  }, [isOpen, ringing]);
+  // Real ringtone + vibration for as long as the call is ringing
+  useRingtone(isOpen);
 
   return (
     <AnimatePresence>
@@ -70,9 +29,11 @@ const IncomingCallModal = ({ isOpen, callerName, callerAvatar, onJoin, onDecline
             transition={{ type: "spring", stiffness: 300, damping: 25 }}
             className="liquid-glass-elevated rounded-3xl p-8 max-w-sm w-full"
           >
-            {/* Caller Info */}
-            <div className="flex flex-col items-center mb-6">
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center mb-4">
+            <div className="flex flex-col items-center mb-6 relative z-10">
+              <div
+                className="w-20 h-20 rounded-full flex items-center justify-center mb-4 overflow-hidden"
+                style={{ background: "var(--brand-gradient)" }}
+              >
                 {callerAvatar ? (
                   <img src={callerAvatar} alt={callerName} className="w-full h-full rounded-full object-cover" />
                 ) : (
@@ -80,12 +41,11 @@ const IncomingCallModal = ({ isOpen, callerName, callerAvatar, onJoin, onDecline
                 )}
               </div>
               <h2 className="text-xl font-bold text-foreground mb-2">{callerName}</h2>
-              <p className="text-sm text-muted-foreground mb-4">Incoming video call...</p>
-              
-              {/* Ringing Animation */}
+              <p className="text-sm text-muted-foreground mb-4">Incoming call...</p>
+
               <div className="flex justify-center mb-6">
                 <motion.div
-                  animate={{ scale: [1, 1.1, 1] }}
+                  animate={{ scale: [1, 1.15, 1] }}
                   transition={{ duration: 1, repeat: Infinity }}
                   className="w-16 h-16 rounded-full bg-primary/20 flex items-center justify-center"
                 >
@@ -94,8 +54,7 @@ const IncomingCallModal = ({ isOpen, callerName, callerAvatar, onJoin, onDecline
               </div>
             </div>
 
-            {/* Call Actions */}
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-4 justify-center relative z-10">
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
@@ -105,12 +64,12 @@ const IncomingCallModal = ({ isOpen, callerName, callerAvatar, onJoin, onDecline
                 <PhoneOff className="w-5 h-5" />
                 Decline
               </motion.button>
-              
+
               <motion.button
                 whileHover={{ scale: 1.05 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onJoin}
-                className="depth-press flex-1 py-4 rounded-2xl bg-primary text-primary-foreground font-semibold flex items-center justify-center gap-2"
+                className="depth-press flex-1 py-4 rounded-2xl bg-success text-success-foreground font-semibold flex items-center justify-center gap-2"
               >
                 <Phone className="w-5 h-5" />
                 Join

@@ -1,11 +1,10 @@
 import { authHeader } from "@/utils/authFetch";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Phone, Video, Send, PhoneOff, Sparkles } from "lucide-react";
+import { ArrowLeft, Phone, Video, Send, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import IncomingCallModal from "@/components/IncomingCallModal";
 import { toast } from "sonner";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/prime-ai-chat`;
@@ -36,8 +35,6 @@ const MessagesPage = () => {
   const [msg, setMsg] = useState("");
   const [searchUser, setSearchUser] = useState("");
   const [searchResults, setSearchResults] = useState<ChatUser[]>([]);
-  const [incomingCall, setIncomingCall] = useState<{ caller: ChatUser; signal: any } | null>(null);
-  const [isInCall, setIsInCall] = useState(false);
   const [aiModeChats, setAiModeChats] = useState<Set<string>>(() => {
     try { return new Set(JSON.parse(localStorage.getItem("ai-mode-chats") || "[]")); } catch { return new Set(); }
   });
@@ -119,146 +116,26 @@ const MessagesPage = () => {
     fetchConversations();
   }, [user]);
 
-  // WebRTC signaling for incoming calls
-  useEffect(() => {
+  // Ring the recipient, then open the liquid-glass call screen (real WebRTC)
+  const startCall = async (recipient: ChatUser, audioOnly = false) => {
     if (!user) return;
-    
-    const channel = supabase.channel(`calls-${user.id}`);
-    
-    channel
-      .on('broadcast', { event: 'incoming-call' }, (payload: any) => {
-        const caller = conversations.find(c => c.user_id === payload.callerId);
-        if (caller) {
-          setIncomingCall({ caller, signal: payload.signal });
-        }
-      })
-      .on('broadcast', { event: 'call-ended' }, () => {
-        setIsInCall(false);
-        setIncomingCall(null);
-      })
-      .subscribe();
-      
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user, conversations]);
-  
-  const startCall = async (recipient: ChatUser) => {
     try {
-      // Get user media
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      
-      // Create peer connection
-      const peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      });
-      
-      // Add local stream
-      stream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, stream);
-      });
-      
-      // Create offer
-      const offer = await peerConnection.createOffer();
-      await peerConnection.setLocalDescription(offer);
-      
-      // Send offer to recipient
       await supabase.channel(`calls-${recipient.user_id}`).send({
-        type: 'broadcast',
-        event: 'call-offer',
+        type: "broadcast",
+        event: "ring",
         payload: {
           callerId: user.id,
-          callerName: user.user_metadata?.display_name || user.email,
-          offer: offer
-        }
+          callerName: user.user_metadata?.display_name || user.user_metadata?.full_name || user.email,
+          audio: audioOnly,
+        },
       });
-      
-      setIsInCall(true);
-      setActiveChat(recipient);
-    } catch (error) {
-      console.error('Call setup error:', error);
+    } catch (err) {
+      console.error("Ring failed:", err);
     }
+    navigate(`/call/${recipient.user_id}${audioOnly ? "?audio=1" : ""}`);
   };
-  
-  const acceptCall = async () => {
-    if (!incomingCall) return;
-    
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
-      
-      const peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' }
-        ]
-      });
-      
-      // Add local stream
-      stream.getTracks().forEach(track => {
-        peerConnection.addTrack(track, stream);
-      });
-      
-      // Handle remote description
-      await peerConnection.setRemoteDescription(new RTCSessionDescription(incomingCall.signal));
-      
-      // Create answer
-      const answer = await peerConnection.createAnswer();
-      await peerConnection.setLocalDescription(answer);
-      
-      // Send answer back
-      await supabase.channel(`calls-${incomingCall.caller.user_id}`).send({
-        type: 'broadcast',
-        event: 'call-answer',
-        payload: {
-          answer: answer
-        }
-      });
-      
-      setIsInCall(true);
-      setIncomingCall(null);
-      setActiveChat(incomingCall.caller);
-    } catch (error) {
-      console.error('Call accept error:', error);
-    }
-  };
-  
-  const declineCall = () => {
-    if (!incomingCall) return;
-    
-    // Send decline signal
-    supabase.channel(`calls-${incomingCall.caller.user_id}`).send({
-      type: 'broadcast',
-      event: 'call-declined',
-      payload: {
-        recipientId: user?.id
-      }
-    });
-    
-    setIncomingCall(null);
-  };
-  
-  const endCall = () => {
-    // Notify all parties that call ended
-    const recipient = activeChat || incomingCall?.caller;
-    if (recipient) {
-      supabase.channel(`calls-${recipient.user_id}`).send({
-        type: 'broadcast',
-        event: 'call-ended'
-      });
-    }
-    
-    if (user) {
-      supabase.channel(`calls-${user.id}`).send({
-        type: 'broadcast',
-        event: 'call-ended'
-      });
-    }
-    
-    setIsInCall(false);
-    setIncomingCall(null);
-  };
+
+
   useEffect(() => {
     if (!searchUser.trim() || !user) { setSearchResults([]); return; }
     const search = async () => {
@@ -328,48 +205,6 @@ const MessagesPage = () => {
 
   if (activeChat) {
     return (
-      <>
-        {/* Incoming Call Modal */}
-        <AnimatePresence>
-          {incomingCall && !isInCall && (
-            <IncomingCallModal
-              isOpen={true}
-              callerName={incomingCall.caller.display_name || incomingCall.caller.username || 'Unknown'}
-              onJoin={acceptCall}
-              onDecline={declineCall}
-            />
-          )}
-        </AnimatePresence>
-
-        {/* Active Call View */}
-        {isInCall && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="fixed inset-0 z-[65] bg-background flex flex-col"
-          >
-            <div className="liquid-glass-elevated safe-area-top">
-              <div className="flex items-center justify-between px-5 py-4">
-                <div className="flex items-center gap-2">
-                  <Video className="w-5 h-5 text-primary" />
-                  <span className="text-headline text-foreground text-base">Video Call</span>
-                </div>
-                <button onClick={endCall} className="depth-press w-10 h-10 rounded-full bg-destructive flex items-center justify-center">
-                  <PhoneOff className="w-5 h-5 text-destructive-foreground" />
-                </button>
-              </div>
-            </div>
-            <div className="flex-1 relative">
-              <video id="remote-video" autoPlay playsInline className="w-full h-full object-cover bg-black" />
-              <div className="absolute bottom-4 right-4 w-32 h-48 rounded-2xl overflow-hidden liquid-glass">
-                <video id="local-video" autoPlay muted playsInline className="w-full h-full object-cover" />
-              </div>
-            </div>
-          </motion.div>
-        )}
-
-        {/* Chat View */}
-        {!isInCall && (
           <div className="min-h-screen bg-background flex flex-col">
             <div className="liquid-glass-elevated safe-area-top">
               <div className="flex items-center gap-3 px-4 py-3 relative z-10">
@@ -392,7 +227,7 @@ const MessagesPage = () => {
                 >
                   <Sparkles className={`w-4 h-4 ${aiModeChats.has(activeChat.user_id) ? "text-primary-foreground" : "text-foreground"}`} />
                 </button>
-                <button onClick={() => startCall(activeChat)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
+                <button onClick={() => startCall(activeChat, true)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
                   <Phone className="w-4 h-4 text-foreground" />
                 </button>
                 <button onClick={() => startCall(activeChat)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
@@ -434,8 +269,6 @@ const MessagesPage = () => {
               </div>
             </div>
           </div>
-        )}
-      </>
     );
   }
 

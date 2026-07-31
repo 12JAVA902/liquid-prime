@@ -15,7 +15,18 @@
     --popover: 220 20% 8%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 210 100% 60%;
+    /* Tri-color brand: blue · red · green */
+    --brand-blue: 214 100% 56%;
+    --brand-red: 0 85% 56%;
+    --brand-green: 145 72% 45%;
+    --brand-gradient: linear-gradient(
+      120deg,
+      hsl(var(--brand-blue)) 0%,
+      hsl(var(--brand-red)) 50%,
+      hsl(var(--brand-green)) 100%
+    );
+
+    --primary: 214 100% 56%;
     --primary-foreground: 0 0% 100%;
 
     --secondary: 220 15% 16%;
@@ -24,15 +35,18 @@
     --muted: 220 15% 14%;
     --muted-foreground: 220 10% 55%;
 
-    --accent: 220 15% 18%;
-    --accent-foreground: 0 0% 95%;
+    --accent: 145 72% 45%;
+    --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 72% 51%;
+    --success: 145 72% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --destructive: 0 85% 56%;
     --destructive-foreground: 0 0% 100%;
 
     --border: 220 15% 18%;
     --input: 220 15% 18%;
-    --ring: 210 100% 60%;
+    --ring: 214 100% 56%;
 
     --radius: 1.25rem;
 
@@ -65,7 +79,7 @@
     --sidebar-accent: 220 15% 14%;
     --sidebar-accent-foreground: 0 0% 95%;
     --sidebar-border: 220 15% 18%;
-    --sidebar-ring: 210 100% 60%;
+    --sidebar-ring: 214 100% 56%;
   }
 }
 

@@ -1,8 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
-import { Sparkles, Download, User } from "lucide-react";
+import { Sparkles, Download, User, Smartphone, Monitor } from "lucide-react";
 import { toast } from "sonner";
+
+const RELEASE_BASE = "https://github.com/12JAVA902/liquid-prime/releases";
 
 const GooeyBackground = () => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -90,6 +92,7 @@ const GooeyBackground = () => {
 const WelcomePage = () => {
   const navigate = useNavigate();
   const [downloadingApk, setDownloadingApk] = useState(false);
+  const [downloadingExe, setDownloadingExe] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
@@ -182,79 +185,113 @@ const WelcomePage = () => {
           By continuing, you agree to our Terms & Privacy Policy
         </motion.p>
 
-        <motion.button
-          initial={{ opacity: 0, scale: 0.8 }}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.9 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ delay: 1.6, type: "spring", stiffness: 200 }}
-          onClick={async () => {
-            setDownloadingApk(true);
-            try {
-              // Try to download APK directly
-              const response = await fetch('https://github.com/12JAVA902/liquid-prime/releases/latest/download/app-debug.apk');
-              if (response.ok) {
-                const blob = await response.blob();
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = 'Primegram.apk';
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                window.URL.revokeObjectURL(url);
-                toast.success('APK downloaded successfully!');
-              } else {
-                // Fallback: open GitHub releases page
-                window.open('https://github.com/12JAVA902/liquid-prime/releases/latest', '_blank');
-                toast.info('Opening GitHub releases page to download APK');
-              }
-            } catch (error) {
-              // Fallback: open GitHub releases page
-              window.open('https://github.com/12JAVA902/liquid-prime/releases/latest', '_blank');
-              toast.info('Opening GitHub releases page to download APK');
-            } finally {
-              setDownloadingApk(false);
-            }
-          }}
-          disabled={downloadingApk}
-          className="depth-press mt-4 px-4 py-2 rounded-full bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-2 mx-auto disabled:opacity-50"
-          style={{ boxShadow: "0 4px 20px hsla(210, 100%, 60%, 0.3)" }}
+          className="mt-5 flex flex-col gap-2"
         >
-          {downloadingApk ? (
-            <>
-              <div className="w-3 h-3 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
-              Downloading...
-            </>
-          ) : (
-            <>
-              <Download className="w-3 h-3" />
-              Download APK (Android)
-            </>
-          )}
-        </motion.button>
-
-        <motion.button
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.8 }}
-          onClick={() => {
-            // Check if PWA is installable
-            if ((window as any).deferredPrompt) {
-              (window as any).deferredPrompt.prompt();
-              (window as any).deferredPrompt.userChoice.then((choiceResult: any) => {
-                if (choiceResult.outcome === 'accepted') {
-                  console.log('User accepted the install prompt');
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                setDownloadingApk(true);
+                try {
+                  const url = `${RELEASE_BASE}/latest/download/app-debug.apk`;
+                  const response = await fetch(url);
+                  if (!response.ok) throw new Error("not available");
+                  const blob = await response.blob();
+                  const objUrl = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = objUrl;
+                  a.download = "Primegram.apk";
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(objUrl);
+                  toast.success("APK downloaded successfully!");
+                } catch {
+                  window.open(`${RELEASE_BASE}/latest`, "_blank");
+                  toast.info("Opening releases page to download the APK");
+                } finally {
+                  setDownloadingApk(false);
                 }
-                (window as any).deferredPrompt = null;
-              });
-            } else {
-              // Fallback: show instructions for PWA install
-              toast.info('To install: Tap share button and "Add to Home Screen"');
-            }
-          }}
-          className="depth-press mt-2 px-4 py-2 rounded-full liquid-glass text-foreground text-xs font-semibold flex items-center justify-center gap-2 mx-auto"
-        >
-          Install as PWA (iOS/Desktop)
-        </motion.button>
+              }}
+              disabled={downloadingApk}
+              className="depth-press flex-1 px-3 py-2.5 rounded-2xl bg-primary text-primary-foreground text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{ boxShadow: "0 4px 20px hsla(214, 100%, 56%, 0.3)" }}
+            >
+              {downloadingApk ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Smartphone className="w-3.5 h-3.5" />
+                  Download APK file
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={async () => {
+                setDownloadingExe(true);
+                try {
+                  const url = `${RELEASE_BASE}/latest/download/Primegram-windows.zip`;
+                  const response = await fetch(url);
+                  if (!response.ok) throw new Error("not available");
+                  const blob = await response.blob();
+                  const objUrl = window.URL.createObjectURL(blob);
+                  const a = document.createElement("a");
+                  a.href = objUrl;
+                  a.download = "Primegram-windows.zip";
+                  document.body.appendChild(a);
+                  a.click();
+                  document.body.removeChild(a);
+                  window.URL.revokeObjectURL(objUrl);
+                  toast.success("Windows app downloaded — unzip and run Primegram.exe");
+                } catch {
+                  window.open(`${RELEASE_BASE}/latest`, "_blank");
+                  toast.info("Opening releases page to download the Windows app");
+                } finally {
+                  setDownloadingExe(false);
+                }
+              }}
+              disabled={downloadingExe}
+              className="depth-press flex-1 px-3 py-2.5 rounded-2xl bg-accent text-accent-foreground text-xs font-semibold flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{ boxShadow: "0 4px 20px hsla(145, 72%, 45%, 0.3)" }}
+            >
+              {downloadingExe ? (
+                <>
+                  <div className="w-3 h-3 border-2 border-accent-foreground/30 border-t-accent-foreground rounded-full animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Monitor className="w-3.5 h-3.5" />
+                  Windows EXE
+                </>
+              )}
+            </button>
+          </div>
+
+          <button
+            onClick={() => {
+              if ((window as any).deferredPrompt) {
+                (window as any).deferredPrompt.prompt();
+                (window as any).deferredPrompt.userChoice.then(() => {
+                  (window as any).deferredPrompt = null;
+                });
+              } else {
+                toast.info('To install: Tap share button and "Add to Home Screen"');
+              }
+            }}
+            className="depth-press px-4 py-2 rounded-full liquid-glass text-foreground text-xs font-semibold flex items-center justify-center gap-2 mx-auto"
+          >
+            <Download className="w-3 h-3" />
+            Install as PWA (iOS/Desktop)
+          </button>
+        </motion.div>
       </motion.div>
     </div>
   );

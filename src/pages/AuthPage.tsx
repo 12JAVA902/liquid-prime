@@ -25,6 +25,8 @@ const AuthPage = () => {
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
   const navigate = useNavigate();
 
   const getNextPath = () => {
@@ -103,7 +105,10 @@ const AuthPage = () => {
           authRateLimiter.reset?.();
           navigate(getNextPath());
         } else {
-          toast.success("Account created! Check your email to verify.");
+          setEmailOtp("");
+          setEmailOtpSent(true);
+          setOtpCountdown(60);
+          toast.success("We sent a 6-digit code to your email — enter it below.");
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: sanitizedEmail, password });
@@ -117,6 +122,46 @@ const AuthPage = () => {
       setLoading(false);
     }
   };
+
+  const handleEmailVerify = async () => {
+    if (emailOtp.length !== 6) {
+      toast.error("Please enter the 6-digit code sent to your email");
+      return;
+    }
+    setVerifyingOtp(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: sanitizeInput(email.toLowerCase().trim()),
+        token: emailOtp,
+        type: "signup",
+      });
+      if (error) throw error;
+      toast.success("Email verified!");
+      navigate(getNextPath());
+    } catch (err: any) {
+      toast.error(friendlyError(err.message));
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const handleEmailResend = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: sanitizeInput(email.toLowerCase().trim()),
+      });
+      if (error) throw error;
+      setOtpCountdown(60);
+      toast.success("New code sent to your email");
+    } catch (err: any) {
+      toast.error(friendlyError(err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   const handleForgotPassword = async () => {
     const sanitizedEmail = sanitizeInput(email.toLowerCase().trim());
@@ -154,13 +199,15 @@ const AuthPage = () => {
         toast.error("Please enter your full name");
         return;
       }
-      if (password) {
-        const passwordValidation = validatePassword(password);
-        if (!passwordValidation.valid) {
-          setPasswordErrors(passwordValidation.errors);
-          toast.error(passwordValidation.errors[0]);
-          return;
-        }
+      if (!password) {
+        toast.error("Create a password — you'll use it to sign in with your phone number");
+        return;
+      }
+      const passwordValidation = validatePassword(password);
+      if (!passwordValidation.valid) {
+        setPasswordErrors(passwordValidation.errors);
+        toast.error(passwordValidation.errors[0]);
+        return;
       }
       setPasswordErrors([]);
     }
@@ -178,7 +225,7 @@ const AuthPage = () => {
       if (isSignUp) {
         const { error } = await supabase.auth.signUp({
           phone: sanitizedPhone,
-          password: password || undefined,
+          password,
           options: { data: { full_name: sanitizeName(fullName) } },
         } as any);
         if (error) {
@@ -192,6 +239,14 @@ const AuthPage = () => {
           }
         }
       } else {
+        // Signing in: if a password was entered, use it directly (no code needed)
+        if (password) {
+          const { error } = await supabase.auth.signInWithPassword({ phone: sanitizedPhone, password });
+          if (error) throw error;
+          authRateLimiter.reset?.();
+          navigate(getNextPath());
+          return;
+        }
         const { error } = await supabase.auth.signInWithOtp({
           phone: sanitizedPhone,
           options: { shouldCreateUser: false },
@@ -320,7 +375,45 @@ const AuthPage = () => {
             </button>
           </div>
 
-          {authMethod === "email" ? (
+          {authMethod === "email" && emailOtpSent ? (
+            <div className="space-y-4">
+              <div>
+                <label className="text-caption text-muted-foreground block mb-1.5">Email verification code</label>
+                <input
+                  value={emailOtp}
+                  onChange={e => setEmailOtp(e.target.value.replace(/[^0-9]/g, ""))}
+                  maxLength={6}
+                  inputMode="numeric"
+                  placeholder="000000"
+                  className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-center text-2xl tracking-[0.5em] font-mono outline-none focus:ring-2 focus:ring-primary/30"
+                />
+                <p className="text-caption text-muted-foreground mt-2">
+                  Enter the 6-digit code sent to {email}
+                </p>
+                {otpCountdown > 0 ? (
+                  <p className="text-[11px] text-muted-foreground mt-1">Resend available in {otpCountdown}s</p>
+                ) : (
+                  <button type="button" onClick={handleEmailResend} className="text-[11px] text-primary hover:underline mt-1">
+                    Resend code
+                  </button>
+                )}
+              </div>
+              <button
+                onClick={handleEmailVerify}
+                disabled={verifyingOtp}
+                className="depth-press w-full py-3 rounded-2xl bg-primary text-primary-foreground text-sm font-semibold disabled:opacity-50"
+              >
+                {verifyingOtp ? "Verifying…" : "Verify & continue"}
+              </button>
+              <button
+                type="button"
+                onClick={() => { setEmailOtpSent(false); setEmailOtp(""); }}
+                className="text-[11px] text-muted-foreground hover:text-foreground w-full"
+              >
+                Use a different email
+              </button>
+            </div>
+          ) : authMethod === "email" ? (
             <form onSubmit={handleEmailSubmit} className="space-y-4">
               <AnimatePresence mode="wait">
                 {isSignUp && (
@@ -432,9 +525,11 @@ const AuthPage = () => {
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1">Full number: {selectedCountry.dial}{phoneNumber}</p>
               </div>
-              {isSignUp && !otpSent && (
+              {!otpSent && (
                 <div>
-                  <label className="text-caption text-muted-foreground block mb-1.5">Password</label>
+                  <label className="text-caption text-muted-foreground block mb-1.5">
+                    {isSignUp ? "Create Password" : "Password"}
+                  </label>
                   <div className="relative">
                     <input 
                       type={showPassword ? "text" : "password"} 
@@ -458,6 +553,11 @@ const AuthPage = () => {
                         <li key={i}>• {error}</li>
                       ))}
                     </ul>
+                  )}
+                  {!isSignUp && (
+                    <p className="text-[10px] text-muted-foreground mt-1">
+                      Leave empty to sign in with an SMS code instead.
+                    </p>
                   )}
                 </div>
               )}
