@@ -239,6 +239,14 @@ const AuthPage = () => {
           }
         }
       } else {
+        // Signing in: if a password was entered, use it directly (no code needed)
+        if (password) {
+          const { error } = await supabase.auth.signInWithPassword({ phone: sanitizedPhone, password });
+          if (error) throw error;
+          authRateLimiter.reset?.();
+          navigate(getNextPath());
+          return;
+        }
         const { error } = await supabase.auth.signInWithOtp({
           phone: sanitizedPhone,
           options: { shouldCreateUser: false },
