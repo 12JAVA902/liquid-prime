@@ -123,6 +123,46 @@ const AuthPage = () => {
     }
   };
 
+  const handleEmailVerify = async () => {
+    if (emailOtp.length !== 6) {
+      toast.error("Please enter the 6-digit code sent to your email");
+      return;
+    }
+    setVerifyingOtp(true);
+    try {
+      const { error } = await supabase.auth.verifyOtp({
+        email: sanitizeInput(email.toLowerCase().trim()),
+        token: emailOtp,
+        type: "signup",
+      });
+      if (error) throw error;
+      toast.success("Email verified!");
+      navigate(getNextPath());
+    } catch (err: any) {
+      toast.error(friendlyError(err.message));
+    } finally {
+      setVerifyingOtp(false);
+    }
+  };
+
+  const handleEmailResend = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: sanitizeInput(email.toLowerCase().trim()),
+      });
+      if (error) throw error;
+      setOtpCountdown(60);
+      toast.success("New code sent to your email");
+    } catch (err: any) {
+      toast.error(friendlyError(err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+
   const handleForgotPassword = async () => {
     const sanitizedEmail = sanitizeInput(email.toLowerCase().trim());
     if (!validateEmail(sanitizedEmail)) {
