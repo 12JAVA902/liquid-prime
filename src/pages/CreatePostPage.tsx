@@ -566,43 +566,22 @@ const CreatePostPage = () => {
             </div>
           </>
         ) : mode === "camera" ? (
-          <div className="space-y-4">
-            <div className="relative liquid-glass rounded-2xl overflow-hidden aspect-square bg-black">
-              <video
-                ref={videoStreamRef}
-                autoPlay
-                playsInline
-                muted
-                className={`w-full h-full object-cover ${facing === "user" ? "mirror" : ""}`}
-                style={{ filter: filterCss }}
-              />
-              {recording && (
-                <div className="absolute top-3 left-3 flex items-center gap-1.5 bg-destructive/90 text-white text-xs font-semibold px-2 py-1 rounded-full">
-                  <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse" />
-                  REC {Math.floor(recordSecs / 60)}:{(recordSecs % 60).toString().padStart(2, "0")}
-                </div>
-              )}
+          <div className="fixed inset-0 z-50 bg-black flex flex-col gap-3 p-3 safe-area-top overflow-y-auto">
+            <div className="flex items-center justify-between">
               <button
-                onClick={() => setFacing((f) => (f === "user" ? "environment" : "user"))}
-                className="absolute top-3 right-3 w-9 h-9 rounded-full bg-background/60 flex items-center justify-center backdrop-blur-md"
+                onClick={() => navigate(-1)}
+                className="depth-press w-9 h-9 rounded-full bg-foreground/10 backdrop-blur-md flex items-center justify-center"
+                aria-label="Close camera"
               >
-                <RotateCcw className="w-4 h-4 text-foreground" />
+                <X className="w-4 h-4 text-foreground" />
               </button>
-            </div>
-
-            {/* Filter row on camera too */}
-            <div className="flex gap-2 overflow-x-auto scrollbar-none pb-1">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.name}
-                  onClick={() => setFilterCss(f.css)}
-                  className={`depth-press flex-shrink-0 px-3 py-2 rounded-xl text-xs font-medium ${
-                    filterCss === f.css ? "bg-primary text-primary-foreground" : "liquid-glass text-foreground"
-                  }`}
-                >
-                  {f.name}
-                </button>
-              ))}
+              <span className="text-xs font-semibold text-muted-foreground">Camera</span>
+              <button
+                onClick={() => setMode("upload")}
+                className="depth-press px-3 py-1.5 rounded-full bg-foreground/10 backdrop-blur-md text-foreground text-xs font-semibold"
+              >
+                Library
+              </button>
             </div>
 
             {/* Capture controls */}
