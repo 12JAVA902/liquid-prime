@@ -92,6 +92,7 @@ const GooeyBackground = () => {
 const WelcomePage = () => {
   const navigate = useNavigate();
   const [downloadingApk, setDownloadingApk] = useState(false);
+  const [downloadingExe, setDownloadingExe] = useState(false);
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6 relative overflow-hidden">
