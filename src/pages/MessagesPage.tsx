@@ -1,11 +1,10 @@
 import { authHeader } from "@/utils/authFetch";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowLeft, Phone, Video, Send, PhoneOff, Sparkles } from "lucide-react";
+import { ArrowLeft, Phone, Video, Send, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
-import IncomingCallModal from "@/components/IncomingCallModal";
 import { toast } from "sonner";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/prime-ai-chat`;
