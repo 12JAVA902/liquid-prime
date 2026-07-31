@@ -25,6 +25,8 @@ const AuthPage = () => {
   const [showCountryDropdown, setShowCountryDropdown] = useState(false);
   const [otpCountdown, setOtpCountdown] = useState(0);
   const [verifyingOtp, setVerifyingOtp] = useState(false);
+  const [emailOtpSent, setEmailOtpSent] = useState(false);
+  const [emailOtp, setEmailOtp] = useState("");
   const navigate = useNavigate();
 
   const getNextPath = () => {
