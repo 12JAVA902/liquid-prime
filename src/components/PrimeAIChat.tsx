@@ -1,3 +1,4 @@
+import { authHeader } from "@/utils/authFetch";
 import { useState, useRef, useEffect, lazy, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { X, Send, Sparkles, Mic, MicOff, Volume2 } from "lucide-react";

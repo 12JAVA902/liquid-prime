@@ -1,3 +1,4 @@
+import { authHeader } from "@/utils/authFetch";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Star, Play, Search, X, Film, Heart, Loader2, RefreshCw, AlertCircle } from "lucide-react";

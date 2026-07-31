@@ -1,3 +1,4 @@
+import { authHeader } from "@/utils/authFetch";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowLeft, Phone, Video, Send, PhoneOff, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
