@@ -57,6 +57,8 @@ const MoviesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"trending" | "top_rated" | "upcoming">("trending");
+  const [offline, setOffline] = useState(false);
+
 
   // IndexedDB setup for saved movies
   useEffect(() => {
