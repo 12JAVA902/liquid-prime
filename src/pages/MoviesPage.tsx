@@ -274,7 +274,11 @@ const MoviesPage = () => {
               {movie.poster_path ? (
                 <img src={`${TMDB_IMG}/w500${movie.poster_path}`} alt={movie.title} className="w-full aspect-[2/3] object-cover" loading="lazy" />
               ) : (
-                <div className="w-full aspect-[2/3] bg-secondary flex items-center justify-center"><Film className="w-8 h-8 text-muted-foreground" /></div>
+                <div className="w-full aspect-[2/3] bg-gradient-to-br from-primary/25 via-secondary to-accent/25 flex flex-col items-center justify-center gap-2 p-3 text-center">
+                  <Film className="w-7 h-7 text-primary/80" />
+                  <span className="text-xs font-semibold text-foreground/90 line-clamp-3">{movie.title}</span>
+                </div>
+
               )}
               <div className="p-2.5 relative z-10">
                 <p className="text-xs font-semibold text-foreground line-clamp-1">{movie.title}</p>
