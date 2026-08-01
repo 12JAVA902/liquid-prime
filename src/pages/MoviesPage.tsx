@@ -5,6 +5,8 @@ import { ArrowLeft, Star, Play, Search, X, Film, Heart, Loader2, RefreshCw, Aler
 import { useNavigate } from "react-router-dom";
 import GlassTabBar from "@/components/GlassTabBar";
 import LiquidBackground from "@/components/LiquidBackground";
+import { catalogByList, searchCatalog, catalogTrailerKey } from "@/data/movies";
+
 
 const TMDB_IMG = "https://image.tmdb.org/t/p";
 const FUNC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tmdb-proxy`;
