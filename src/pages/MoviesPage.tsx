@@ -5,6 +5,8 @@ import { ArrowLeft, Star, Play, Search, X, Film, Heart, Loader2, RefreshCw, Aler
 import { useNavigate } from "react-router-dom";
 import GlassTabBar from "@/components/GlassTabBar";
 import LiquidBackground from "@/components/LiquidBackground";
+import { catalogByList, searchCatalog, catalogTrailerKey } from "@/data/movies";
+
 
 const TMDB_IMG = "https://image.tmdb.org/t/p";
 const FUNC_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/tmdb-proxy`;
@@ -55,6 +57,8 @@ const MoviesPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<"trending" | "top_rated" | "upcoming">("trending");
+  const [offline, setOffline] = useState(false);
+
 
   // IndexedDB setup for saved movies
   useEffect(() => {
@@ -160,8 +164,11 @@ const MoviesPage = () => {
     setLoading(true);
     setError(null);
     fetchMovies(endpoints[tab])
-      .then(r => setTrending(r))
-      .catch(err => setError(err.message?.includes("TMDB_API_KEY") ? "Movie Hub unavailable — TMDB API key missing." : "Couldn't load movies. Tap retry."))
+      .then(r => {
+        if (r.length) { setTrending(r); setOffline(false); }
+        else { setTrending(catalogByList(tab)); setOffline(true); }
+      })
+      .catch(() => { setTrending(catalogByList(tab)); setOffline(true); })
       .finally(() => setLoading(false));
   }, [tab]);
 
@@ -173,9 +180,10 @@ const MoviesPage = () => {
           headers: { Authorization: await authHeader() },
         });
         const data = await res.json();
-        setSearchResults(data.results || []);
+        const results = data.results || [];
+        setSearchResults(results.length ? results : searchCatalog(search));
       } catch (err) {
-        setError('Search failed. Please try again.');
+        setSearchResults(searchCatalog(search));
       }
     }, 400);
     return () => clearTimeout(t);
@@ -183,7 +191,7 @@ const MoviesPage = () => {
 
   const openMovie = async (movie: Movie) => {
     setSelectedMovie(movie);
-    setTrailerKey(null);
+    setTrailerKey(catalogTrailerKey(movie.id, movie.title) ?? null);
     setCast([]);
     try {
       const [videosRes, creditsRes] = await Promise.all([
@@ -201,6 +209,7 @@ const MoviesPage = () => {
       if (credits.cast) setCast(credits.cast.slice(0, 12));
     } catch {}
   };
+
 
   const toggleFav = (id: number) => {
     setFavorites(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
@@ -237,7 +246,16 @@ const MoviesPage = () => {
         </div>
       )}
 
+      {offline && !error && (
+        <div className="px-4 pb-3 relative z-10">
+          <div className="liquid-glass-subtle rounded-xl px-3 py-2 text-xs text-muted-foreground">
+            Showing the built-in Prime film library — live catalog unavailable right now.
+          </div>
+        </div>
+      )}
+
       {error && (
+
         <div className="flex flex-col items-center justify-center py-20 relative z-10">
           <AlertCircle className="w-12 h-12 text-destructive mb-4" />
           <p className="text-center text-muted-foreground">{error}</p>
@@ -265,7 +283,11 @@ const MoviesPage = () => {
               {movie.poster_path ? (
                 <img src={`${TMDB_IMG}/w500${movie.poster_path}`} alt={movie.title} className="w-full aspect-[2/3] object-cover" loading="lazy" />
               ) : (
-                <div className="w-full aspect-[2/3] bg-secondary flex items-center justify-center"><Film className="w-8 h-8 text-muted-foreground" /></div>
+                <div className="w-full aspect-[2/3] bg-gradient-to-br from-primary/25 via-secondary to-accent/25 flex flex-col items-center justify-center gap-2 p-3 text-center">
+                  <Film className="w-7 h-7 text-primary/80" />
+                  <span className="text-xs font-semibold text-foreground/90 line-clamp-3">{movie.title}</span>
+                </div>
+
               )}
               <div className="p-2.5 relative z-10">
                 <p className="text-xs font-semibold text-foreground line-clamp-1">{movie.title}</p>
@@ -311,9 +333,16 @@ const MoviesPage = () => {
                 </div>
               )}
               <div className="px-5 pb-8 -mt-12 relative z-10">
-                <div className="w-24 rounded-xl shadow-lg">
-                  <img src={`${TMDB_IMG}/w500${selectedMovie.poster_path}`} alt="" className="w-24 rounded-xl shadow-lg" />
+                <div className="w-24 rounded-xl shadow-lg overflow-hidden">
+                  {selectedMovie.poster_path ? (
+                    <img src={`${TMDB_IMG}/w500${selectedMovie.poster_path}`} alt={selectedMovie.title} className="w-24 rounded-xl shadow-lg" />
+                  ) : (
+                    <div className="w-24 aspect-[2/3] rounded-xl bg-gradient-to-br from-primary/25 via-secondary to-accent/25 flex items-center justify-center">
+                      <Film className="w-6 h-6 text-primary/80" />
+                    </div>
+                  )}
                 </div>
+
                 <div className="flex-1 pt-12">
                   <h2 className="text-lg font-bold text-foreground">{selectedMovie.title}</h2>
                   <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground flex-wrap">
