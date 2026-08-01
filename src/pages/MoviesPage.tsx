@@ -333,9 +333,16 @@ const MoviesPage = () => {
                 </div>
               )}
               <div className="px-5 pb-8 -mt-12 relative z-10">
-                <div className="w-24 rounded-xl shadow-lg">
-                  <img src={`${TMDB_IMG}/w500${selectedMovie.poster_path}`} alt="" className="w-24 rounded-xl shadow-lg" />
+                <div className="w-24 rounded-xl shadow-lg overflow-hidden">
+                  {selectedMovie.poster_path ? (
+                    <img src={`${TMDB_IMG}/w500${selectedMovie.poster_path}`} alt={selectedMovie.title} className="w-24 rounded-xl shadow-lg" />
+                  ) : (
+                    <div className="w-24 aspect-[2/3] rounded-xl bg-gradient-to-br from-primary/25 via-secondary to-accent/25 flex items-center justify-center">
+                      <Film className="w-6 h-6 text-primary/80" />
+                    </div>
+                  )}
                 </div>
+
                 <div className="flex-1 pt-12">
                   <h2 className="text-lg font-bold text-foreground">{selectedMovie.title}</h2>
                   <div className="flex items-center gap-2 mt-1 text-sm text-muted-foreground flex-wrap">
