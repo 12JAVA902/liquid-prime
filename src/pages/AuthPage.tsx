@@ -5,6 +5,7 @@ import { lovable } from "@/integrations/lovable/index";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 import { Phone, Eye, EyeOff, Shield, ChevronDown, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { logSecurityEvent } from "@/utils/audit";
 import { validateEmail, validatePhone, validatePassword, sanitizeInput, sanitizeName, authRateLimiter, otpRateLimiter } from "@/utils/security";
 import { countryCodes, getCountryByCode, type CountryCode } from "@/utils/countryCodes";
 
@@ -101,18 +102,24 @@ const AuthPage = () => {
           }
           throw error;
         }
+        void logSecurityEvent("auth", "email_signup", sanitizedEmail, { otp_required: !data.session });
         if (data.session) {
           authRateLimiter.reset?.();
           navigate(getNextPath());
         } else {
           setEmailOtp("");
           setEmailOtpSent(true);
+          void logSecurityEvent("otp", "email_otp_sent", sanitizedEmail, { reason: "signup" });
           setOtpCountdown(60);
           toast.success("We sent a 6-digit code to your email — enter it below.");
         }
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email: sanitizedEmail, password });
-        if (error) throw error;
+        if (error) {
+          void logSecurityEvent("auth", "email_signin_failed", sanitizedEmail);
+          throw error;
+        }
+        void logSecurityEvent("auth", "email_signin", sanitizedEmail);
         authRateLimiter.reset?.();
         navigate(getNextPath());
       }
@@ -135,7 +142,11 @@ const AuthPage = () => {
         token: emailOtp,
         type: "signup",
       });
-      if (error) throw error;
+      if (error) {
+        void logSecurityEvent("otp", "email_otp_failed", sanitizeInput(email.toLowerCase().trim()));
+        throw error;
+      }
+      void logSecurityEvent("otp", "email_otp_verified", sanitizeInput(email.toLowerCase().trim()));
       toast.success("Email verified!");
       navigate(getNextPath());
     } catch (err: any) {
@@ -153,6 +164,7 @@ const AuthPage = () => {
         email: sanitizeInput(email.toLowerCase().trim()),
       });
       if (error) throw error;
+      void logSecurityEvent("otp", "email_otp_resent", sanitizeInput(email.toLowerCase().trim()));
       setOtpCountdown(60);
       toast.success("New code sent to your email");
     } catch (err: any) {
@@ -228,34 +240,38 @@ const AuthPage = () => {
           password,
           options: { data: { full_name: sanitizeName(fullName) } },
         } as any);
+        void logSecurityEvent("auth", "phone_signup", sanitizedPhone, { failed: !!error });
         if (error) {
           // Number already exists → send a sign-in code instead
           if ((error.message || "").toLowerCase().includes("already")) {
-            const { error: otpErr } = await supabase.auth.signInWithOtp({ phone: sanitizedPhone });
-            if (otpErr) throw otpErr;
             setIsSignUp(false);
+            void logSecurityEvent("auth", "phone_signup_exists", sanitizedPhone);
+            toast.error("That number already has an account — sign in with your password.");
+            return;
           } else {
             throw error;
           }
         }
       } else {
-        // Signing in: if a password was entered, use it directly (no code needed)
-        if (password) {
-          const { error } = await supabase.auth.signInWithPassword({ phone: sanitizedPhone, password });
-          if (error) throw error;
-          authRateLimiter.reset?.();
-          navigate(getNextPath());
+        // Signing in never uses OTP — password only. OTP is signup-only.
+        if (!password) {
+          toast.error("Enter your password to sign in");
           return;
         }
-        const { error } = await supabase.auth.signInWithOtp({
-          phone: sanitizedPhone,
-          options: { shouldCreateUser: false },
-        });
-        if (error) throw error;
+        const { error } = await supabase.auth.signInWithPassword({ phone: sanitizedPhone, password });
+        if (error) {
+          void logSecurityEvent("auth", "phone_signin_failed", sanitizedPhone);
+          throw error;
+        }
+        void logSecurityEvent("auth", "phone_signin", sanitizedPhone);
+        authRateLimiter.reset?.();
+        navigate(getNextPath());
+        return;
       }
       setOtp("");
       setOtpSent(true);
       setOtpCountdown(60); // 60 second countdown
+      void logSecurityEvent("otp", "sms_otp_sent", sanitizedPhone, { reason: "signup" });
       toast.success(`Code sent to ${sanitizedPhone}`);
     } catch (err: any) {
       toast.error(friendlyError(err.message));
@@ -278,7 +294,11 @@ const AuthPage = () => {
         token: otp,
         type: "sms",
       });
-      if (error) throw error;
+      if (error) {
+        void logSecurityEvent("otp", "sms_otp_failed", sanitizeInput(fullPhone));
+        throw error;
+      }
+      void logSecurityEvent("otp", "sms_otp_verified", sanitizeInput(fullPhone));
       // Persist the name captured during phone sign-up
       const name = sanitizeName(fullName);
       if (name.length >= 2) {

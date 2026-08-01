@@ -1,3 +1,4 @@
+import { logSecurityEvent } from "@/utils/audit";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { PhoneOff, Mic, MicOff, Video, VideoOff, RefreshCw } from "lucide-react";
@@ -44,6 +45,9 @@ const CallPage = () => {
 
   const send = useCallback(
     (event: string, payload: Record<string, unknown> = {}) => {
+      if (event !== "ice") {
+        void logSecurityEvent("realtime", `call_${event}_sent`, String(payload.to ?? "") || undefined);
+      }
       channelRef.current?.send({
         type: "broadcast",
         event,
@@ -52,6 +56,7 @@ const CallPage = () => {
     },
     [user?.id],
   );
+
 
   const cleanup = useCallback(() => {
     stopRingRef.current?.();
