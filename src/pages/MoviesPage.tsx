@@ -246,7 +246,16 @@ const MoviesPage = () => {
         </div>
       )}
 
+      {offline && !error && (
+        <div className="px-4 pb-3 relative z-10">
+          <div className="liquid-glass-subtle rounded-xl px-3 py-2 text-xs text-muted-foreground">
+            Showing the built-in Prime film library — live catalog unavailable right now.
+          </div>
+        </div>
+      )}
+
       {error && (
+
         <div className="flex flex-col items-center justify-center py-20 relative z-10">
           <AlertCircle className="w-12 h-12 text-destructive mb-4" />
           <p className="text-center text-muted-foreground">{error}</p>
