@@ -1,3 +1,4 @@
+import { logSecurityEvent } from "@/utils/audit";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { PhoneOff, Mic, MicOff, Video, VideoOff, RefreshCw } from "lucide-react";
