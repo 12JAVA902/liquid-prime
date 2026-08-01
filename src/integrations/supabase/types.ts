@@ -155,6 +155,36 @@ export type Database = {
         }
         Relationships: []
       }
+      security_audit_log: {
+        Row: {
+          category: string
+          created_at: string
+          details: Json
+          event: string
+          id: string
+          target: string | null
+          user_id: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          details?: Json
+          event: string
+          id?: string
+          target?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          details?: Json
+          event?: string
+          id?: string
+          target?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       wallet_transactions: {
         Row: {
           amount: number
@@ -190,7 +220,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      log_security_event: {
+        Args: {
+          _category: string
+          _details?: Json
+          _event: string
+          _target?: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
