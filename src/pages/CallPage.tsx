@@ -44,6 +44,9 @@ const CallPage = () => {
 
   const send = useCallback(
     (event: string, payload: Record<string, unknown> = {}) => {
+      if (event !== "ice") {
+        void logSecurityEvent("realtime", `call_${event}_sent`, String(payload.to ?? "") || undefined);
+      }
       channelRef.current?.send({
         type: "broadcast",
         event,
@@ -52,6 +55,7 @@ const CallPage = () => {
     },
     [user?.id],
   );
+
 
   const cleanup = useCallback(() => {
     stopRingRef.current?.();
