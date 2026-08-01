@@ -160,8 +160,11 @@ const MoviesPage = () => {
     setLoading(true);
     setError(null);
     fetchMovies(endpoints[tab])
-      .then(r => setTrending(r))
-      .catch(err => setError(err.message?.includes("TMDB_API_KEY") ? "Movie Hub unavailable — TMDB API key missing." : "Couldn't load movies. Tap retry."))
+      .then(r => {
+        if (r.length) { setTrending(r); setOffline(false); }
+        else { setTrending(catalogByList(tab)); setOffline(true); }
+      })
+      .catch(() => { setTrending(catalogByList(tab)); setOffline(true); })
       .finally(() => setLoading(false));
   }, [tab]);
 
@@ -173,9 +176,10 @@ const MoviesPage = () => {
           headers: { Authorization: await authHeader() },
         });
         const data = await res.json();
-        setSearchResults(data.results || []);
+        const results = data.results || [];
+        setSearchResults(results.length ? results : searchCatalog(search));
       } catch (err) {
-        setError('Search failed. Please try again.');
+        setSearchResults(searchCatalog(search));
       }
     }, 400);
     return () => clearTimeout(t);
@@ -183,7 +187,7 @@ const MoviesPage = () => {
 
   const openMovie = async (movie: Movie) => {
     setSelectedMovie(movie);
-    setTrailerKey(null);
+    setTrailerKey(catalogTrailerKey(movie.id, movie.title) ?? null);
     setCast([]);
     try {
       const [videosRes, creditsRes] = await Promise.all([
@@ -201,6 +205,7 @@ const MoviesPage = () => {
       if (credits.cast) setCast(credits.cast.slice(0, 12));
     } catch {}
   };
+
 
   const toggleFav = (id: number) => {
     setFavorites(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n; });
