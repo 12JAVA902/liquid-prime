@@ -77,7 +77,7 @@ export const MOVIE_CATALOG: CatalogMovie[] = [
   m(601, "E.T. the Extra-Terrestrial", "1982-06-11", 7.5, [878, 12, 10751], "A troubled child summons the courage to help a friendly alien escape and return home.", ["top_rated"], "qYAETtIIClk"),
   m(78, "Blade Runner", "1982-06-25", 7.9, [878, 18, 53], "A blade runner must pursue and terminate four replicants who stole a ship in space.", ["top_rated"], "eogpIG53Cis"),
   m(335984, "Blade Runner 2049", "2017-10-04", 7.6, [878, 18], "A young blade runner's discovery of a long-buried secret sends him on a quest.", ["top_rated"], "gCcx85zbxz4"),
-  m(680, "Mad Max: Fury Road", "2015-05-13", 7.6, [28, 12, 878], "In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler.", ["trending", "top_rated"], "hEJnMQG9ev8"),
+  m(76341, "Mad Max: Fury Road", "2015-05-13", 7.6, [28, 12, 878], "In a post-apocalyptic wasteland, a woman rebels against a tyrannical ruler.", ["trending", "top_rated"], "hEJnMQG9ev8"),
   m(1726, "Iron Man", "2008-04-30", 7.6, [28, 878, 12], "Tony Stark builds a high-tech suit of armor and becomes Iron Man.", ["trending"], "8ugaeA-nMTc"),
   m(1124, "The Prestige", "2006-10-19", 8.2, [18, 9648, 53], "Two rival magicians engage in a bitter battle for supremacy.", ["top_rated"], "o4gHCmTQDVI"),
   m(1422, "The Departed", "2006-10-05", 8.2, [18, 53, 80], "An undercover cop and a mole in the police attempt to identify each other.", ["top_rated"], "auYbpnEwBBg"),
