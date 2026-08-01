@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import IncomingCallModal from "@/components/IncomingCallModal";
 import { playNotificationTone } from "@/hooks/useRingtone";
+import { logSecurityEvent } from "@/utils/audit";
 
 interface Ring {
   callerId: string;
@@ -29,9 +30,13 @@ const GlobalRealtimeListener = () => {
       .channel(`calls-${user.id}`)
       .on("broadcast", { event: "ring" }, ({ payload }: any) => {
         if (!payload?.callerId) return;
+        void logSecurityEvent("realtime", "call_ring_received", payload.callerId, { audio: !!payload.audio });
         setRing({ callerId: payload.callerId, callerName: payload.callerName || "Unknown", audio: payload.audio });
       })
-      .on("broadcast", { event: "ring-cancel" }, () => setRing(null))
+      .on("broadcast", { event: "ring-cancel" }, () => {
+        void logSecurityEvent("realtime", "call_ring_cancelled");
+        setRing(null);
+      })
       .subscribe();
 
     const inbox = supabase
@@ -41,6 +46,7 @@ const GlobalRealtimeListener = () => {
         { event: "INSERT", schema: "public", table: "messages", filter: `receiver_id=eq.${user.id}` },
         async ({ new: row }: any) => {
           playNotificationTone();
+          void logSecurityEvent("realtime", "message_received", row.sender_id, { message_id: row.id });
           const { data } = await supabase
             .from("profiles")
             .select("display_name, username")
@@ -67,6 +73,7 @@ const GlobalRealtimeListener = () => {
 
   const decline = () => {
     if (ring && user) {
+      void logSecurityEvent("realtime", "call_declined", ring.callerId);
       supabase.channel(`calls-${ring.callerId}`).send({
         type: "broadcast",
         event: "hangup",
