@@ -1,4 +1,7 @@
+import { getRtcConfig } from "./iceConfig";
+
 export interface SignalingMessage {
+
   type: 'offer' | 'answer' | 'ice-candidate' | 'call-request' | 'call-accepted' | 'call-rejected' | 'call-ended';
   payload: any;
   from: string;
@@ -14,18 +17,9 @@ export class WebRTCManager {
   private signalingChannel: any = null;
 
   constructor() {
-    // Configure STUN servers for NAT traversal
-    const configuration = {
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' }
-      ]
-    };
+    // Google STUN cluster for NAT traversal (shared config)
+    this.peerConnection = new RTCPeerConnection(getRtcConfig());
 
-    this.peerConnection = new RTCPeerConnection(configuration);
     this.setupPeerConnection();
   }
 

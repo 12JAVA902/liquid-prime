@@ -6,16 +6,10 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { startRingtone } from "@/hooks/useRingtone";
+import { getRtcConfig } from "@/utils/iceConfig";
 
 export const rtcChannelName = (a: string, b: string) => `rtc-${[a, b].sort().join("--")}`;
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-  ],
-};
 
 type Status = "ringing" | "connecting" | "connected" | "ended";
 
