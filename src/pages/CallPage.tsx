@@ -88,7 +88,7 @@ const CallPage = () => {
       });
 
     const start = async () => {
-      const pc = new RTCPeerConnection(ICE_SERVERS);
+      const pc = new RTCPeerConnection(getRtcConfig());
       pcRef.current = pc;
 
       const stream = await navigator.mediaDevices.getUserMedia({
