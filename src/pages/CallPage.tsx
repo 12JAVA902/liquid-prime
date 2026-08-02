@@ -118,8 +118,22 @@ const CallPage = () => {
           stopRingRef.current = null;
           setStatus("connected");
         }
-        if (s === "failed" || s === "disconnected" || s === "closed") hangUp();
+        // Transient network flips: re-gather against Google STUN before giving up.
+        if (s === "disconnected") {
+          setStatus("connecting");
+          try {
+            pc.restartIce();
+          } catch {
+            /* older browsers */
+          }
+          setTimeout(() => {
+            if (pcRef.current === pc && pc.connectionState !== "connected") hangUp();
+          }, 6000);
+          return;
+        }
+        if (s === "failed" || s === "closed") hangUp();
       };
+
 
       const channel = supabase.channel(rtcChannelName(user.id, userId), {
         config: { broadcast: { self: false } },
