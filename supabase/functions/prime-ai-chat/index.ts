@@ -50,7 +50,7 @@ serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-3-flash-preview",
+        model: "google/gemini-3.6-flash",
         messages: [
           { role: "system", content: "You are Prime AI, a helpful and friendly AI assistant built into the Primegram social media app. Keep responses concise, engaging, and helpful. Use emojis occasionally." },
           ...messages,
