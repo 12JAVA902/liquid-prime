@@ -6,16 +6,10 @@ import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { startRingtone } from "@/hooks/useRingtone";
+import { getRtcConfig } from "@/utils/iceConfig";
 
 export const rtcChannelName = (a: string, b: string) => `rtc-${[a, b].sort().join("--")}`;
 
-const ICE_SERVERS: RTCConfiguration = {
-  iceServers: [
-    { urls: "stun:stun.l.google.com:19302" },
-    { urls: "stun:stun1.l.google.com:19302" },
-    { urls: "stun:stun2.l.google.com:19302" },
-  ],
-};
 
 type Status = "ringing" | "connecting" | "connected" | "ended";
 
@@ -94,7 +88,7 @@ const CallPage = () => {
       });
 
     const start = async () => {
-      const pc = new RTCPeerConnection(ICE_SERVERS);
+      const pc = new RTCPeerConnection(getRtcConfig());
       pcRef.current = pc;
 
       const stream = await navigator.mediaDevices.getUserMedia({
@@ -124,8 +118,22 @@ const CallPage = () => {
           stopRingRef.current = null;
           setStatus("connected");
         }
-        if (s === "failed" || s === "disconnected" || s === "closed") hangUp();
+        // Transient network flips: re-gather against Google STUN before giving up.
+        if (s === "disconnected") {
+          setStatus("connecting");
+          try {
+            pc.restartIce();
+          } catch {
+            /* older browsers */
+          }
+          setTimeout(() => {
+            if (pcRef.current === pc && pc.connectionState !== "connected") hangUp();
+          }, 6000);
+          return;
+        }
+        if (s === "failed" || s === "closed") hangUp();
       };
+
 
       const channel = supabase.channel(rtcChannelName(user.id, userId), {
         config: { broadcast: { self: false } },
