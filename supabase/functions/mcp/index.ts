@@ -17,8 +17,8 @@ var whoami_default = defineTool({
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     }
-    const { createClient } = await import("npm:@supabase/supabase-js@^2.103.0");
-    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    const { createClient: createClient2 } = await import("npm:@supabase/supabase-js@^2.103.0");
+    const sb = createClient2(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false }
     });
@@ -47,8 +47,8 @@ var list_posts_default = defineTool2({
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     }
-    const { createClient } = await import("npm:@supabase/supabase-js@^2.103.0");
-    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    const { createClient: createClient2 } = await import("npm:@supabase/supabase-js@^2.103.0");
+    const sb = createClient2(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false }
     });
@@ -78,8 +78,8 @@ var create_post_default = defineTool3({
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     }
-    const { createClient } = await import("npm:@supabase/supabase-js@^2.103.0");
-    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    const { createClient: createClient2 } = await import("npm:@supabase/supabase-js@^2.103.0");
+    const sb = createClient2(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false }
     });
@@ -107,8 +107,8 @@ var list_messages_default = defineTool4({
     if (!ctx.isAuthenticated()) {
       return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
     }
-    const { createClient } = await import("npm:@supabase/supabase-js@^2.103.0");
-    const sb = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
+    const { createClient: createClient2 } = await import("npm:@supabase/supabase-js@^2.103.0");
+    const sb = createClient2(process.env.SUPABASE_URL, process.env.SUPABASE_PUBLISHABLE_KEY, {
       global: { headers: { Authorization: `Bearer ${ctx.getToken()}` } },
       auth: { persistSession: false, autoRefreshToken: false }
     });
@@ -122,18 +122,155 @@ var list_messages_default = defineTool4({
   }
 });
 
+// src/lib/mcp/tools/like-post.ts
+import { defineTool as defineTool5 } from "npm:@lovable.dev/mcp-js@0.24.0";
+import { z as z4 } from "npm:zod@^3.25.76";
+
+// src/lib/mcp/supabase.ts
+import { createClient } from "npm:@supabase/supabase-js@^2.103.0";
+function runtimeEnv(name) {
+  const runtime = globalThis;
+  return runtime.Deno?.env?.get?.(name) ?? runtime.process?.env?.[name];
+}
+function configuredEnv(names) {
+  for (const name of names) {
+    const value = runtimeEnv(name)?.trim();
+    if (value) return value;
+  }
+  return void 0;
+}
+function supabaseProjectUrl() {
+  const url = configuredEnv(["SUPABASE_URL", "VITE_SUPABASE_URL"]);
+  if (!url) throw new Error("SUPABASE_URL (or VITE_SUPABASE_URL) is required");
+  return url;
+}
+function supabasePublishableKey() {
+  const direct = configuredEnv(["SUPABASE_PUBLISHABLE_KEY", "VITE_SUPABASE_PUBLISHABLE_KEY"]);
+  if (direct) return direct;
+  const keyset = runtimeEnv("SUPABASE_PUBLISHABLE_KEYS");
+  if (keyset) {
+    try {
+      const parsed = JSON.parse(keyset);
+      if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
+        const keys = parsed;
+        const key = [keys.default, ...Object.values(keys)].find((v) => typeof v === "string" && v.trim().startsWith("sb_publishable_"))?.trim();
+        if (key) return key;
+      }
+    } catch {
+    }
+  }
+  const legacy = configuredEnv(["SUPABASE_ANON_KEY", "VITE_SUPABASE_ANON_KEY"]);
+  if (legacy) return legacy;
+  throw new Error("SUPABASE_PUBLISHABLE_KEY, SUPABASE_PUBLISHABLE_KEYS, or SUPABASE_ANON_KEY is required");
+}
+function supabaseForUser(ctx) {
+  const token = ctx.getToken();
+  if (!token) throw new Error("supabaseForUser requires a verified OAuth token");
+  return createClient(supabaseProjectUrl(), supabasePublishableKey(), {
+    global: { headers: { Authorization: `Bearer ${token}` } },
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+
+// src/lib/mcp/tools/like-post.ts
+var like_post_default = defineTool5({
+  name: "like_post",
+  title: "Like or unlike a post",
+  description: "Like a Primegram post as the signed-in user, or remove that like when `unlike` is true. Liking twice is a no-op.",
+  inputSchema: {
+    post_id: z4.string().uuid().describe("ID of the post to like."),
+    unlike: z4.boolean().optional().describe("Set true to remove the signed-in user's like instead.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false },
+  handler: async ({ post_id, unlike }, ctx) => {
+    if (!ctx.isAuthenticated()) {
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+    }
+    const sb = supabaseForUser(ctx);
+    const userId = ctx.getUserId();
+    if (unlike) {
+      const { error: error2 } = await sb.from("post_likes").delete().eq("post_id", post_id).eq("user_id", userId);
+      if (error2) return { content: [{ type: "text", text: error2.message }], isError: true };
+      return {
+        content: [{ type: "text", text: `Removed like from post ${post_id}` }],
+        structuredContent: { post_id, liked: false }
+      };
+    }
+    const { error } = await sb.from("post_likes").insert({ post_id, user_id: userId });
+    if (error && error.code !== "23505") {
+      return { content: [{ type: "text", text: error.message }], isError: true };
+    }
+    return {
+      content: [{ type: "text", text: `Liked post ${post_id}` }],
+      structuredContent: { post_id, liked: true, already_liked: error?.code === "23505" }
+    };
+  }
+});
+
+// src/lib/mcp/tools/comment-on-post.ts
+import { defineTool as defineTool6 } from "npm:@lovable.dev/mcp-js@0.24.0";
+import { z as z5 } from "npm:zod@^3.25.76";
+var comment_on_post_default = defineTool6({
+  name: "comment_on_post",
+  title: "Comment on a post",
+  description: "Add a comment to a Primegram post as the signed-in user.",
+  inputSchema: {
+    post_id: z5.string().uuid().describe("ID of the post to comment on."),
+    content: z5.string().trim().min(1).max(2e3).describe("Comment text.")
+  },
+  annotations: { readOnlyHint: false, destructiveHint: false, openWorldHint: false },
+  handler: async ({ post_id, content }, ctx) => {
+    if (!ctx.isAuthenticated()) {
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+    }
+    const sb = supabaseForUser(ctx);
+    const { data, error } = await sb.from("post_comments").insert({ post_id, user_id: ctx.getUserId(), content }).select("id, post_id, content, created_at").single();
+    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    return {
+      content: [{ type: "text", text: `Commented on post ${post_id}` }],
+      structuredContent: { comment: data }
+    };
+  }
+});
+
+// src/lib/mcp/tools/list-post-comments.ts
+import { defineTool as defineTool7 } from "npm:@lovable.dev/mcp-js@0.24.0";
+import { z as z6 } from "npm:zod@^3.25.76";
+var list_post_comments_default = defineTool7({
+  name: "list_post_comments",
+  title: "List comments on a post",
+  description: "List comments on a Primegram post, newest first.",
+  inputSchema: {
+    post_id: z6.string().uuid().describe("ID of the post."),
+    limit: z6.number().int().min(1).max(100).default(30).describe("Max number of comments to return.")
+  },
+  annotations: { readOnlyHint: true, idempotentHint: true, openWorldHint: false },
+  handler: async ({ post_id, limit }, ctx) => {
+    if (!ctx.isAuthenticated()) {
+      return { content: [{ type: "text", text: "Not authenticated" }], isError: true };
+    }
+    const sb = supabaseForUser(ctx);
+    const { data, error } = await sb.from("post_comments").select("id, post_id, user_id, content, created_at").eq("post_id", post_id).order("created_at", { ascending: false }).limit(limit);
+    if (error) return { content: [{ type: "text", text: error.message }], isError: true };
+    return {
+      content: [{ type: "text", text: JSON.stringify(data, null, 2) }],
+      structuredContent: { comments: data ?? [] }
+    };
+  }
+});
+
 // src/lib/mcp/index.ts
 var projectRef = "iyyenycwokksfqywmoio";
 var mcp_default = defineMcp({
   name: "primegram-mcp",
   title: "Primegram",
-  version: "0.1.0",
-  instructions: "Tools for Primegram, a social + entertainment app. Act as the signed-in user: read their profile, list and create their posts, and read their direct messages. All access is scoped by the user's OAuth token via row-level security.",
+  version: "0.2.0",
+  instructions: "Tools for Primegram, a social + entertainment app. Act as the signed-in user: read their profile, list and create their posts, like and comment on posts, and read their direct messages. All access is scoped by the user's OAuth token via row-level security.",
   auth: auth.oauth.issuer({
     issuer: `https://${projectRef}.supabase.co/auth/v1`,
     acceptedAudiences: "authenticated"
   }),
-  tools: [whoami_default, list_posts_default, create_post_default, list_messages_default]
+  tools: [whoami_default, list_posts_default, create_post_default, list_messages_default, like_post_default, comment_on_post_default, list_post_comments_default]
 });
 
 // lovable-mcp-supabase-entry.ts
