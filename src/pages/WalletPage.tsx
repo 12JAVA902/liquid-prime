@@ -43,20 +43,33 @@ const WalletPage = () => {
 
   const handleSubmit = async () => {
     if (!user) return;
+
+    // Top-ups require a verified payment and are credited by the payment
+    // processor server-side — the client can never create funds itself.
+    if (modal === "topup") {
+      toast.info("Top-ups require a verified payment method. Card top-ups are coming soon.");
+      return;
+    }
+
+    // "Receive" is not a client action: funds arrive when another user sends them.
+    if (modal === "receive") {
+      toast.info("Share your username so others can send you funds.");
+      return;
+    }
+
     const amt = parseFloat(amount);
     if (!amt || amt <= 0) { toast.error("Enter a valid amount"); return; }
-    if (modal === "send") {
-      if (!recipient.trim()) { toast.error("Enter recipient"); return; }
-      if (amt > balance) { toast.error("Insufficient balance"); return; }
-    }
-    const { error } = await supabase.from("wallet_transactions").insert({
-      user_id: user.id,
-      type: modal!,
-      amount: amt,
-      counterparty: recipient.trim() || null,
+    if (!recipient.trim()) { toast.error("Enter recipient username"); return; }
+
+    // Balance check, recipient lookup and the paired debit/credit all happen
+    // atomically server-side.
+    const { data, error } = await supabase.rpc("wallet_send", {
+      _recipient: recipient.trim(),
+      _amount: amt,
     });
-    if (error) { toast.error("Transaction failed"); return; }
-    toast.success(modal === "topup" ? `Added $${amt.toFixed(2)}` : modal === "send" ? `Sent $${amt.toFixed(2)} to ${recipient}` : `Received $${amt.toFixed(2)}`);
+    if (error) { toast.error(error.message || "Transaction failed"); return; }
+    const sent = Array.isArray(data) ? Number(data[0]?.transfer_amount ?? amt) : amt;
+    toast.success(`Sent $${sent.toFixed(2)} to ${recipient.trim()}`);
     setModal(null); setAmount(""); setRecipient("");
     load();
   };
