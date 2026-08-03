@@ -229,6 +229,15 @@ export type Database = {
         }
         Returns: undefined
       }
+      wallet_balance: { Args: { _user_id: string }; Returns: number }
+      wallet_my_balance: { Args: never; Returns: number }
+      wallet_send: {
+        Args: { _amount: number; _recipient: string }
+        Returns: {
+          new_balance: number
+          transfer_amount: number
+        }[]
+      }
     }
     Enums: {
       [_ in never]: never
