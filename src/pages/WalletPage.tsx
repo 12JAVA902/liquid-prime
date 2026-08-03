@@ -159,7 +159,7 @@ const WalletPage = () => {
               {modal !== "topup" && (
                 <div className="relative z-10">
                   <label className="text-caption text-muted-foreground block mb-1.5">{modal === "send" ? "Recipient" : "From"}</label>
-                  <input value={recipient} onChange={e => setRecipient(e.target.value)} placeholder="Username or email" className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/30" />
+                  <input value={recipient} onChange={e => setRecipient(e.target.value)} placeholder="Username" className="w-full px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm outline-none focus:ring-2 focus:ring-primary/30" />
                 </div>
               )}
               <div className="relative z-10">
