@@ -24,7 +24,7 @@ const Index = () => {
         const userIds = [...new Set(data.map(p => p.user_id))];
         const { data: profiles } = await supabase
           .from("profiles")
-          .select("user_id, display_name, username, avatar_url")
+          .select("user_id, display_name, username, avatar_url, is_verified, is_official")
           .in("user_id", userIds);
 
         const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
@@ -67,6 +67,9 @@ const Index = () => {
                 comments={0}
                 timeAgo={new Date(post.created_at).toLocaleDateString()}
                 index={i}
+                postId={post.id}
+                isVerified={post.profile?.is_verified}
+                isOfficial={post.profile?.is_official}
               />
             ))
           )}

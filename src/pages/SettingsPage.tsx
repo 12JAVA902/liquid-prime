@@ -66,6 +66,10 @@ const SettingsPage = () => {
     { icon: HelpCircle, label: "Help & Support", desc: "FAQs and contact", panel: "help" as Panel },
   ];
 
+  const adminSection = isAdmin
+    ? { icon: Shield, label: "Admin Console", desc: "Moderation, users & audit log", panel: null as Panel, route: "/admin" }
+    : null;
+
   const renderPanel = () => {
     switch (activePanel) {
       case "profile":
