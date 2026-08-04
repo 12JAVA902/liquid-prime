@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { useRoles } from "@/hooks/useRole";
 
 type Panel = null | "profile" | "notifications" | "privacy" | "security" | "appearance" | "darkmode" | "help";
 
@@ -17,6 +18,7 @@ const Toggle = ({ on, onToggle }: { on: boolean; onToggle: () => void }) => (
 const SettingsPage = () => {
   const navigate = useNavigate();
   const { signOut, user } = useAuth();
+  const { isAdmin } = useRoles();
   const [activePanel, setActivePanel] = useState<Panel>(null);
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
@@ -65,10 +67,6 @@ const SettingsPage = () => {
     { icon: Moon, label: "Dark Mode", desc: darkMode ? "On" : "Off", panel: "darkmode" as Panel },
     { icon: HelpCircle, label: "Help & Support", desc: "FAQs and contact", panel: "help" as Panel },
   ];
-
-  const adminSection = isAdmin
-    ? { icon: Shield, label: "Admin Console", desc: "Moderation, users & audit log", panel: null as Panel, route: "/admin" }
-    : null;
 
   const renderPanel = () => {
     switch (activePanel) {
