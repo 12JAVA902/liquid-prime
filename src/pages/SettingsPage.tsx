@@ -235,6 +235,24 @@ const SettingsPage = () => {
                 <ChevronRight className="w-4 h-4 text-muted-foreground" />
               </motion.button>
             ))}
+            {isAdmin && (
+              <motion.button
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.28 }}
+                onClick={() => navigate("/admin")}
+                className="depth-press liquid-glass rounded-2xl p-4 flex items-center gap-3 w-full text-left relative z-10 border border-primary/30"
+              >
+                <div className="w-10 h-10 rounded-xl bg-primary/15 flex items-center justify-center">
+                  <Shield className="w-5 h-5 text-primary" />
+                </div>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-foreground">Admin Console</p>
+                  <p className="text-caption text-muted-foreground">Moderation, users, reports & audit log</p>
+                </div>
+                <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              </motion.button>
+            )}
             <motion.button initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} onClick={handleSignOut}
               className="depth-press w-full mt-4 py-3 rounded-2xl liquid-glass text-destructive text-sm font-semibold flex items-center justify-center gap-2 relative z-10">
               <LogOut className="w-4 h-4" /> Sign Out
