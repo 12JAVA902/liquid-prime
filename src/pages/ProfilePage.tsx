@@ -6,12 +6,15 @@ import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import GlassTabBar from "@/components/GlassTabBar";
+import VerifiedBadge from "@/components/VerifiedBadge";
 
 interface Profile {
   display_name: string | null;
   username: string | null;
   bio: string | null;
   avatar_url: string | null;
+  is_verified?: boolean | null;
+  is_official?: boolean | null;
 }
 
 const ProfilePage = () => {

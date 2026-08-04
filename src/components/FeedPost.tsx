@@ -128,10 +128,26 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{username}</p>
+            <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1">
+              {username}
+              <VerifiedBadge isVerified={isVerified} isOfficial={isOfficial} />
+            </p>
             <p className="text-caption text-muted-foreground">{timeAgo}</p>
           </div>
-          <button className="depth-press w-8 h-8 flex items-center justify-center rounded-full liquid-glass-subtle">
+          <button
+            aria-label="Report post"
+            onClick={async () => {
+              const reason = window.prompt("Report this post — what's wrong with it?");
+              if (!reason?.trim()) return;
+              if (!postId) return toast.error("This post can't be reported");
+              const { error } = await supabase
+                .from("reports")
+                .insert({ target_type: "post", target_id: postId, reason: reason.trim() });
+              if (error) toast.error(error.message);
+              else toast.success("Report sent to the Primegram team");
+            }}
+            className="depth-press w-8 h-8 flex items-center justify-center rounded-full liquid-glass-subtle"
+          >
             <span className="text-muted-foreground text-lg">···</span>
           </button>
         </div>
