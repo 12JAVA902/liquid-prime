@@ -2,6 +2,9 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Send, Bookmark, Play, Pause, Loader2, Volume2, VolumeX } from "lucide-react";
 import { useMute } from "@/contexts/MuteContext";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface FeedPostProps {
   image: string;
@@ -14,9 +17,12 @@ interface FeedPostProps {
   timeAgo: string;
   index: number;
   autoPlay?: boolean;
+  postId?: string;
+  isVerified?: boolean | null;
+  isOfficial?: boolean | null;
 }
 
-const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes, comments, timeAgo, index, autoPlay = true }: FeedPostProps) => {
+const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes, comments, timeAgo, index, autoPlay = true, postId, isVerified, isOfficial }: FeedPostProps) => {
   const { muted, toggleMuted } = useMute();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);

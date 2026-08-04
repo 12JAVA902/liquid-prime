@@ -22,6 +22,7 @@ import SportsPage from "./pages/SportsPage";
 import MoviesPage from "./pages/MoviesPage";
 import DiscoverPage from "./pages/DiscoverPage";
 import OAuthConsent from "./pages/OAuthConsent";
+import AdminPage from "./pages/AdminPage";
 import GlobalRealtimeListener from "./components/GlobalRealtimeListener";
 
 const queryClient = new QueryClient();
@@ -72,6 +73,7 @@ const App = () => (
             <Route path="/sports" element={<ProtectedRoute><SportsPage /></ProtectedRoute>} />
             <Route path="/movies" element={<ProtectedRoute><MoviesPage /></ProtectedRoute>} />
             <Route path="/discover" element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
