@@ -32,7 +32,7 @@ const ProfilePage = () => {
     const fetchData = async () => {
       const { data } = await supabase
         .from("profiles")
-        .select("display_name, username, bio, avatar_url")
+        .select("display_name, username, bio, avatar_url, is_verified, is_official")
         .eq("user_id", user.id)
         .single();
       if (data) setProfile(data);
@@ -95,7 +95,7 @@ const ProfilePage = () => {
       <div className="liquid-glass-elevated safe-area-top">
         <div className="flex items-center gap-3 px-5 py-4 relative z-10">
           <button onClick={() => navigate(-1)} className="depth-press"><ArrowLeft className="w-5 h-5 text-foreground" /></button>
-          <span className="text-headline text-foreground text-base flex-1">{profile?.username || "Profile"}</span>
+          <span className="text-headline text-foreground text-base flex-1 flex items-center gap-1">{profile?.username || "Profile"}<VerifiedBadge isVerified={profile?.is_verified} isOfficial={profile?.is_official} /></span>
           <button onClick={() => navigate("/settings")} className="depth-press"><Settings className="w-5 h-5 text-foreground" /></button>
         </div>
       </div>
