@@ -2,6 +2,9 @@ import { useState, useRef, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Heart, MessageCircle, Send, Bookmark, Play, Pause, Loader2, Volume2, VolumeX } from "lucide-react";
 import { useMute } from "@/contexts/MuteContext";
+import VerifiedBadge from "@/components/VerifiedBadge";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface FeedPostProps {
   image: string;
@@ -14,9 +17,12 @@ interface FeedPostProps {
   timeAgo: string;
   index: number;
   autoPlay?: boolean;
+  postId?: string;
+  isVerified?: boolean | null;
+  isOfficial?: boolean | null;
 }
 
-const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes, comments, timeAgo, index, autoPlay = true }: FeedPostProps) => {
+const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes, comments, timeAgo, index, autoPlay = true, postId, isVerified, isOfficial }: FeedPostProps) => {
   const { muted, toggleMuted } = useMute();
   const [liked, setLiked] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -122,10 +128,26 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
             </div>
           )}
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-foreground truncate">{username}</p>
+            <p className="text-sm font-semibold text-foreground truncate flex items-center gap-1">
+              {username}
+              <VerifiedBadge isVerified={isVerified} isOfficial={isOfficial} />
+            </p>
             <p className="text-caption text-muted-foreground">{timeAgo}</p>
           </div>
-          <button className="depth-press w-8 h-8 flex items-center justify-center rounded-full liquid-glass-subtle">
+          <button
+            aria-label="Report post"
+            onClick={async () => {
+              const reason = window.prompt("Report this post — what's wrong with it?");
+              if (!reason?.trim()) return;
+              if (!postId) return toast.error("This post can't be reported");
+              const { error } = await supabase
+                .from("reports")
+                .insert({ target_type: "post", target_id: postId, reason: reason.trim() });
+              if (error) toast.error(error.message);
+              else toast.success("Report sent to the Primegram team");
+            }}
+            className="depth-press w-8 h-8 flex items-center justify-center rounded-full liquid-glass-subtle"
+          >
             <span className="text-muted-foreground text-lg">···</span>
           </button>
         </div>
