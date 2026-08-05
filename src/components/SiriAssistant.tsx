@@ -189,7 +189,7 @@ const SiriAssistant = ({ open, onClose, onOpenTextChat }: Props) => {
         setReply(full);
       }
 
-      setHistory([...convo, { role: "assistant", content: full }].slice(-16));
+      setHistory([...convo, { role: "assistant" as const, content: full }].slice(-16));
       speak(full, () => {
         busyRef.current = false;
         if (wantListeningRef.current) startRecognition();
