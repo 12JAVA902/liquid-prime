@@ -4,87 +4,122 @@ interface SiriOrbProps {
   size?: number;
   intensity?: number;
   listening?: boolean;
+  speaking?: boolean;
   onClick?: () => void;
 }
 
 /**
- * Translucent Siri-style orb with red/blue/green spinning waves.
+ * Siri orb — a translucent glass sphere with fluid multicolour plasma blobs
+ * swirling inside, a refractive rim and an audio-reactive halo.
+ * Fully CSS/SVG driven, reacts to `intensity` (0..1) from the mic analyser.
  */
-const SiriOrb = ({ size = 64, intensity = 0, listening = false, onClick }: SiriOrbProps) => {
-  const scale = 1 + intensity * 0.15;
+const SiriOrb = ({
+  size = 64,
+  intensity = 0,
+  listening = false,
+  speaking = false,
+  onClick,
+}: SiriOrbProps) => {
+  const active = listening || speaking;
+  const energy = Math.min(1, Math.max(0, intensity));
+  const speed = active ? 3.2 - energy * 1.6 : 7;
+
+  const blob = (
+    name: string,
+    color: string,
+    duration: number,
+    inset: string,
+    delay = 0,
+  ) => (
+    <div
+      className="absolute rounded-full"
+      style={{
+        inset,
+        background: color,
+        filter: `blur(${Math.max(3, size * 0.11)}px)`,
+        mixBlendMode: "screen",
+        animation: `${name} ${duration}s ease-in-out ${delay}s infinite`,
+        willChange: "transform",
+      }}
+    />
+  );
 
   return (
     <motion.button
       type="button"
       onClick={onClick}
-      className="relative rounded-full overflow-visible group"
+      aria-label="Siri assistant"
+      className="relative rounded-full overflow-visible"
       style={{ width: size, height: size }}
-      animate={{ scale }}
+      animate={{ scale: 1 + energy * 0.14 }}
       whileTap={{ scale: 0.92 }}
-      transition={{ type: "spring", stiffness: 300, damping: 20 }}
+      transition={{ type: "spring", stiffness: 320, damping: 18 }}
     >
-      {/* Outer multicolor glow */}
+      {/* Ambient bloom */}
       <motion.div
-        className="absolute inset-0 rounded-full pointer-events-none"
+        className="absolute rounded-full pointer-events-none"
         style={{
+          inset: "-35%",
           background:
-            "radial-gradient(circle, rgba(255,80,80,0.45) 0%, rgba(80,140,255,0.35) 40%, rgba(80,255,140,0.30) 70%, transparent 80%)",
-          filter: "blur(18px)",
+            "radial-gradient(circle, hsla(214,100%,62%,0.40) 0%, hsla(280,90%,65%,0.30) 35%, hsla(150,85%,55%,0.22) 60%, transparent 78%)",
+          filter: `blur(${size * 0.28}px)`,
         }}
         animate={{
-          opacity: listening ? [0.6, 1, 0.6] : [0.5, 0.85, 0.5],
-          scale: listening ? [1, 1.3, 1] : [1, 1.1, 1],
+          opacity: active ? [0.7, 1, 0.7] : [0.45, 0.7, 0.45],
+          scale: active ? [1, 1.18, 1] : [1, 1.06, 1],
         }}
-        transition={{ duration: listening ? 1.2 : 2.4, repeat: Infinity, ease: "easeInOut" }}
+        transition={{ duration: active ? 1.1 : 3.4, repeat: Infinity, ease: "easeInOut" }}
       />
 
-      {/* RED wave ring */}
-      <motion.div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background:
-            "conic-gradient(from 0deg, transparent 0%, rgba(255,60,60,0.95) 25%, transparent 50%, transparent 100%)",
-          filter: "blur(5px)",
-        }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: listening ? 2 : 4, repeat: Infinity, ease: "linear" }}
-      />
-
-      {/* BLUE wave ring (counter-rotating) */}
-      <motion.div
-        className="absolute inset-[3%] rounded-full"
-        style={{
-          background:
-            "conic-gradient(from 120deg, transparent 0%, rgba(60,140,255,0.95) 25%, transparent 50%, transparent 100%)",
-          filter: "blur(5px)",
-          mixBlendMode: "screen",
-        }}
-        animate={{ rotate: -360 }}
-        transition={{ duration: listening ? 2.6 : 5, repeat: Infinity, ease: "linear" }}
-      />
-
-      {/* GREEN wave ring */}
-      <motion.div
-        className="absolute inset-[6%] rounded-full"
-        style={{
-          background:
-            "conic-gradient(from 240deg, transparent 0%, rgba(60,255,140,0.9) 25%, transparent 50%, transparent 100%)",
-          filter: "blur(5px)",
-          mixBlendMode: "screen",
-        }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: listening ? 3.2 : 6, repeat: Infinity, ease: "linear" }}
-      />
-
-      {/* Glass sphere body */}
+      {/* Glass sphere with fluid plasma interior */}
       <div
-        className="absolute inset-[10%] rounded-full backdrop-blur-2xl"
+        className="absolute inset-0 rounded-full overflow-hidden"
         style={{
-          background:
-            "radial-gradient(circle at 30% 30%, rgba(255,255,255,0.5) 0%, rgba(255,255,255,0.12) 35%, rgba(20,20,40,0.4) 70%, rgba(10,5,30,0.6) 100%)",
+          background: "radial-gradient(circle at 50% 55%, hsla(230,40%,10%,0.55), hsla(240,50%,4%,0.75))",
+          backdropFilter: "blur(6px) saturate(1.6)",
+          WebkitBackdropFilter: "blur(6px) saturate(1.6)",
           boxShadow:
-            "inset 0 2px 12px rgba(255,255,255,0.45), inset 0 -8px 24px rgba(80,40,180,0.35), 0 4px 20px rgba(120,80,255,0.4)",
-          border: "1px solid rgba(255,255,255,0.25)",
+            "inset 0 0 0 1px hsla(0,0%,100%,0.22), inset 0 2px 10px hsla(0,0%,100%,0.30), inset 0 -12px 26px hsla(214,100%,60%,0.35)",
+        }}
+      >
+        {blob("siri-blob-a", "radial-gradient(circle, hsla(214,100%,62%,0.95) 0%, transparent 70%)", speed, "-18% auto auto -14%")}
+        {blob("siri-blob-b", "radial-gradient(circle, hsla(292,95%,66%,0.90) 0%, transparent 70%)", speed * 1.25, "auto -16% -20% auto", 0.3)}
+        {blob("siri-blob-c", "radial-gradient(circle, hsla(150,88%,55%,0.85) 0%, transparent 70%)", speed * 1.5, "auto auto -12% -20%", 0.6)}
+        {blob("siri-blob-a", "radial-gradient(circle, hsla(0,90%,62%,0.75) 0%, transparent 70%)", speed * 1.8, "-10% -20% auto auto", 0.9)}
+
+        {/* blob sizing wrappers rely on inset offsets; keep them round */}
+        <style>{`
+          @supports (mix-blend-mode: screen) { /* progressive enhancement marker */ }
+        `}</style>
+
+        {/* Inner caustic swirl */}
+        <motion.div
+          className="absolute inset-0"
+          style={{
+            background:
+              "conic-gradient(from 0deg, transparent 0%, hsla(0,0%,100%,0.18) 18%, transparent 40%, hsla(0,0%,100%,0.12) 68%, transparent 90%)",
+            mixBlendMode: "overlay",
+          }}
+          animate={{ rotate: 360 }}
+          transition={{ duration: active ? 5 : 12, repeat: Infinity, ease: "linear" }}
+        />
+
+        {/* Frosted glass veil so the plasma reads as *inside* the sphere */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 32% 26%, hsla(0,0%,100%,0.42) 0%, hsla(0,0%,100%,0.08) 30%, transparent 58%)",
+          }}
+        />
+      </div>
+
+      {/* Refractive rim */}
+      <div
+        className="absolute inset-0 rounded-full pointer-events-none"
+        style={{
+          boxShadow:
+            "inset 0 0 0 1px hsla(0,0%,100%,0.30), 0 6px 22px hsla(214,100%,56%,0.35), 0 2px 6px hsla(0,0%,0%,0.45)",
         }}
       />
 
@@ -92,28 +127,27 @@ const SiriOrb = ({ size = 64, intensity = 0, listening = false, onClick }: SiriO
       <div
         className="absolute rounded-full pointer-events-none"
         style={{
-          width: "28%",
-          height: "18%",
-          top: "14%",
-          left: "24%",
-          background: "radial-gradient(ellipse, rgba(255,255,255,0.85) 0%, transparent 70%)",
-          filter: "blur(2px)",
+          width: "26%",
+          height: "16%",
+          top: "13%",
+          left: "23%",
+          transform: "rotate(-18deg)",
+          background: "radial-gradient(ellipse, hsla(0,0%,100%,0.9) 0%, transparent 72%)",
+          filter: "blur(1.5px)",
         }}
       />
 
-      {/* Listening pulse waves */}
-      {listening && (
-        <>
-          {[0, 0.4, 0.8].map((delay) => (
-            <motion.div
-              key={delay}
-              className="absolute inset-0 rounded-full border border-white/40 pointer-events-none"
-              animate={{ scale: [1, 1.8], opacity: [0.7, 0] }}
-              transition={{ duration: 1.6, delay, repeat: Infinity, ease: "easeOut" }}
-            />
-          ))}
-        </>
-      )}
+      {/* Listening / speaking ripples */}
+      {active &&
+        [0, 0.45, 0.9].map((delay) => (
+          <motion.div
+            key={delay}
+            className="absolute inset-0 rounded-full pointer-events-none"
+            style={{ border: "1px solid hsla(0,0%,100%,0.45)" }}
+            animate={{ scale: [1, 1.9], opacity: [0.65, 0] }}
+            transition={{ duration: 1.7, delay, repeat: Infinity, ease: "easeOut" }}
+          />
+        ))}
     </motion.button>
   );
 };
