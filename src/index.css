@@ -276,3 +276,33 @@
   0%, 100% { box-shadow: 0 0 0 0 hsla(var(--primary) / 0.4); }
   50% { box-shadow: 0 0 20px 4px hsla(var(--primary) / 0.2); }
 }
+
+@keyframes glass-sheen {
+  0% { transform: translateX(-60%) rotate(0deg); opacity: 0; }
+  35% { opacity: 1; }
+  100% { transform: translateX(60%) rotate(0deg); opacity: 0; }
+}
+
+/* Siri fluid blob drift */
+@keyframes siri-blob-a {
+  0%, 100% { transform: translate(-12%, -8%) scale(1); }
+  33% { transform: translate(14%, 10%) scale(1.25); }
+  66% { transform: translate(-6%, 16%) scale(0.9); }
+}
+
+@keyframes siri-blob-b {
+  0%, 100% { transform: translate(12%, 10%) scale(1.1); }
+  33% { transform: translate(-14%, -6%) scale(0.85); }
+  66% { transform: translate(8%, -14%) scale(1.3); }
+}
+
+@keyframes siri-blob-c {
+  0%, 100% { transform: translate(6%, -14%) scale(0.95); }
+  40% { transform: translate(-16%, 8%) scale(1.3); }
+  70% { transform: translate(10%, 12%) scale(1.05); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .liquid-sheen::after { animation: none; }
+}
+
