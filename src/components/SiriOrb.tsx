@@ -25,16 +25,21 @@ const SiriOrb = ({
   const speed = active ? 3.2 - energy * 1.6 : 7;
 
   const blob = (
+    key: string,
     name: string,
     color: string,
     duration: number,
-    inset: string,
+    pos: { top: string; left: string; size: string },
     delay = 0,
   ) => (
     <div
+      key={key}
       className="absolute rounded-full"
       style={{
-        inset,
+        top: pos.top,
+        left: pos.left,
+        width: pos.size,
+        height: pos.size,
         background: color,
         filter: `blur(${Math.max(3, size * 0.11)}px)`,
         mixBlendMode: "screen",
@@ -43,6 +48,7 @@ const SiriOrb = ({
       }}
     />
   );
+
 
   return (
     <motion.button
