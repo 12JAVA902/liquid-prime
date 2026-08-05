@@ -32,7 +32,7 @@ serve(async (req) => {
       });
     }
 
-    const { messages } = await req.json();
+    const { messages, mode } = await req.json();
     if (!Array.isArray(messages) || messages.length === 0 || messages.length > 50) {
       return new Response(JSON.stringify({ error: "Invalid messages payload" }), {
         status: 400,
@@ -52,7 +52,13 @@ serve(async (req) => {
       body: JSON.stringify({
         model: "google/gemini-3.6-flash",
         messages: [
-          { role: "system", content: "You are Prime AI, a helpful and friendly AI assistant built into the Primegram social media app. Keep responses concise, engaging, and helpful. Use emojis occasionally." },
+          {
+            role: "system",
+            content:
+              mode === "voice"
+                ? "You are Siri for Primegram — a warm, witty, real-time voice assistant. You are being spoken to out loud and your reply is read aloud, so answer in 1-3 short conversational sentences, no markdown, no emoji, no lists. Be immediate and natural. You can help users navigate the app (home, music, sports, movies, reels, profile, messages, wallet, settings, search, discover); when they ask to go somewhere, confirm briefly like 'Opening movies.'"
+                : "You are Prime AI, a helpful and friendly AI assistant built into the Primegram social media app. Keep responses concise, engaging, and helpful. Use emojis occasionally.",
+          },
           ...messages,
         ],
         stream: true,
