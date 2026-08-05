@@ -81,38 +81,47 @@ const SiriOrb = ({
       <div
         className="absolute inset-0 rounded-full overflow-hidden"
         style={{
-          background: "radial-gradient(circle at 50% 55%, hsla(230,40%,10%,0.55), hsla(240,50%,4%,0.75))",
-          backdropFilter: "blur(6px) saturate(1.6)",
-          WebkitBackdropFilter: "blur(6px) saturate(1.6)",
+          background: "radial-gradient(circle at 50% 55%, hsla(235,55%,7%,0.85), hsla(240,60%,3%,0.95))",
+          backdropFilter: "blur(8px) saturate(1.6)",
+          WebkitBackdropFilter: "blur(8px) saturate(1.6)",
           boxShadow:
-            "inset 0 0 0 1px hsla(0,0%,100%,0.22), inset 0 2px 10px hsla(0,0%,100%,0.30), inset 0 -12px 26px hsla(214,100%,60%,0.35)",
+            "inset 0 0 0 1px hsla(0,0%,100%,0.20), inset 0 2px 10px hsla(0,0%,100%,0.22), inset 0 -12px 26px hsla(214,100%,60%,0.35)",
         }}
       >
-        {blob("blue", "siri-blob-a", "radial-gradient(circle, hsla(214,100%,62%,0.95) 0%, transparent 70%)", speed, { top: "-12%", left: "-10%", size: "78%" })}
-        {blob("violet", "siri-blob-b", "radial-gradient(circle, hsla(292,95%,66%,0.90) 0%, transparent 70%)", speed * 1.25, { top: "22%", left: "26%", size: "82%" }, 0.3)}
-        {blob("green", "siri-blob-c", "radial-gradient(circle, hsla(150,88%,55%,0.85) 0%, transparent 70%)", speed * 1.5, { top: "34%", left: "-14%", size: "70%" }, 0.6)}
-        {blob("red", "siri-blob-a", "radial-gradient(circle, hsla(0,90%,62%,0.75) 0%, transparent 70%)", speed * 1.8, { top: "-16%", left: "34%", size: "66%" }, 0.9)}
-
+        {blob("blue", "siri-blob-a", "radial-gradient(circle, hsla(214,100%,58%,1) 0%, hsla(214,100%,50%,0.35) 45%, transparent 72%)", speed, { top: "-14%", left: "-12%", size: "80%" })}
+        {blob("violet", "siri-blob-b", "radial-gradient(circle, hsla(288,100%,62%,0.95) 0%, hsla(288,100%,55%,0.30) 45%, transparent 72%)", speed * 1.25, { top: "26%", left: "28%", size: "80%" }, 0.3)}
+        {blob("green", "siri-blob-c", "radial-gradient(circle, hsla(150,95%,50%,0.9) 0%, hsla(150,95%,45%,0.28) 45%, transparent 72%)", speed * 1.5, { top: "38%", left: "-16%", size: "68%" }, 0.6)}
+        {blob("red", "siri-blob-a", "radial-gradient(circle, hsla(0,95%,58%,0.85) 0%, hsla(0,95%,50%,0.25) 45%, transparent 72%)", speed * 1.8, { top: "-18%", left: "36%", size: "64%" }, 0.9)}
 
         {/* Inner caustic swirl */}
         <motion.div
           className="absolute inset-0"
           style={{
             background:
-              "conic-gradient(from 0deg, transparent 0%, hsla(0,0%,100%,0.18) 18%, transparent 40%, hsla(0,0%,100%,0.12) 68%, transparent 90%)",
+              "conic-gradient(from 0deg, transparent 0%, hsla(0,0%,100%,0.14) 18%, transparent 40%, hsla(0,0%,100%,0.10) 68%, transparent 90%)",
             mixBlendMode: "overlay",
           }}
           animate={{ rotate: 360 }}
           transition={{ duration: active ? 5 : 12, repeat: Infinity, ease: "linear" }}
         />
 
-        {/* Frosted glass veil so the plasma reads as *inside* the sphere */}
+        {/* Depth vignette keeps the plasma reading as liquid inside glass */}
         <div
           className="absolute inset-0"
           style={{
             background:
-              "radial-gradient(circle at 32% 26%, hsla(0,0%,100%,0.42) 0%, hsla(0,0%,100%,0.08) 30%, transparent 58%)",
+              "radial-gradient(circle at 50% 50%, transparent 40%, hsla(240,60%,3%,0.55) 82%, hsla(240,60%,2%,0.85) 100%)",
           }}
+        />
+
+        {/* Frosted glass veil */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 32% 24%, hsla(0,0%,100%,0.30) 0%, hsla(0,0%,100%,0.05) 26%, transparent 52%)",
+          }}
+
         />
       </div>
 
