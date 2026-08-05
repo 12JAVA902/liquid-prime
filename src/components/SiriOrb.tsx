@@ -88,15 +88,11 @@ const SiriOrb = ({
             "inset 0 0 0 1px hsla(0,0%,100%,0.22), inset 0 2px 10px hsla(0,0%,100%,0.30), inset 0 -12px 26px hsla(214,100%,60%,0.35)",
         }}
       >
-        {blob("siri-blob-a", "radial-gradient(circle, hsla(214,100%,62%,0.95) 0%, transparent 70%)", speed, "-18% auto auto -14%")}
-        {blob("siri-blob-b", "radial-gradient(circle, hsla(292,95%,66%,0.90) 0%, transparent 70%)", speed * 1.25, "auto -16% -20% auto", 0.3)}
-        {blob("siri-blob-c", "radial-gradient(circle, hsla(150,88%,55%,0.85) 0%, transparent 70%)", speed * 1.5, "auto auto -12% -20%", 0.6)}
-        {blob("siri-blob-a", "radial-gradient(circle, hsla(0,90%,62%,0.75) 0%, transparent 70%)", speed * 1.8, "-10% -20% auto auto", 0.9)}
+        {blob("blue", "siri-blob-a", "radial-gradient(circle, hsla(214,100%,62%,0.95) 0%, transparent 70%)", speed, { top: "-12%", left: "-10%", size: "78%" })}
+        {blob("violet", "siri-blob-b", "radial-gradient(circle, hsla(292,95%,66%,0.90) 0%, transparent 70%)", speed * 1.25, { top: "22%", left: "26%", size: "82%" }, 0.3)}
+        {blob("green", "siri-blob-c", "radial-gradient(circle, hsla(150,88%,55%,0.85) 0%, transparent 70%)", speed * 1.5, { top: "34%", left: "-14%", size: "70%" }, 0.6)}
+        {blob("red", "siri-blob-a", "radial-gradient(circle, hsla(0,90%,62%,0.75) 0%, transparent 70%)", speed * 1.8, { top: "-16%", left: "34%", size: "66%" }, 0.9)}
 
-        {/* blob sizing wrappers rely on inset offsets; keep them round */}
-        <style>{`
-          @supports (mix-blend-mode: screen) { /* progressive enhancement marker */ }
-        `}</style>
 
         {/* Inner caustic swirl */}
         <motion.div
