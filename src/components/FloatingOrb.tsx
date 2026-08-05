@@ -2,9 +2,11 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import SiriOrb from "./SiriOrb";
 import PrimeAIChat from "./PrimeAIChat";
+import SiriAssistant from "./SiriAssistant";
 
 const FloatingOrb = () => {
   const [aiOpen, setAiOpen] = useState(false);
+  const [voiceOpen, setVoiceOpen] = useState(false);
   const [isListening, setIsListening] = useState(false);
   const [voiceIntensity, setVoiceIntensity] = useState(0);
   const [isHovered, setIsHovered] = useState(false);
@@ -24,32 +26,12 @@ const FloatingOrb = () => {
         e.preventDefault();
         e.stopPropagation();
         
-        if (!aiOpen) {
-          // Open AI chat first
-          setAiOpen(true);
-          setTimeout(() => {
-            // Then trigger voice input
-            const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
-            if (micButton) {
-              micButton.click();
-            }
-          }, 300);
-        } else {
-          // Toggle voice input if already open
-          const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
-          if (micButton) {
-            micButton.click();
-          }
-        }
+        setVoiceOpen((v) => !v);
       }
     };
     
     const handleOpenEvent = () => {
-      setAiOpen(true);
-      setTimeout(() => {
-        const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
-        micButton?.click();
-      }, 300);
+      setVoiceOpen(true);
     };
 
     window.addEventListener('keydown', handleKeyPress);
@@ -102,14 +84,7 @@ const FloatingOrb = () => {
   const handleOrbClick = () => {
     setIntensity(1);
     setTimeout(() => setIntensity(0), 500);
-    
-    if (!aiOpen) {
-      setAiOpen(true);
-      setTimeout(() => {
-        const micButton = document.querySelector('[data-voice-trigger]') as HTMLElement | null;
-        if (micButton) micButton.click();
-      }, 300);
-    }
+    setVoiceOpen(true);
   };
 
   return (
@@ -142,7 +117,7 @@ const FloatingOrb = () => {
                 exit={{ opacity: 0, y: 10 }}
                 className="absolute -top-12 left-1/2 transform -translate-x-1/2 liquid-glass-elevated rounded-full px-3 py-1.5 text-xs font-medium text-foreground whitespace-nowrap z-10"
               >
-                Press 'P' for AI
+                Tap or press 'P' — talk to Siri
               </motion.div>
             )}
           </AnimatePresence>
@@ -156,6 +131,12 @@ const FloatingOrb = () => {
         />
         
         {/* AI Chat */}
+        <SiriAssistant
+          open={voiceOpen}
+          onClose={() => setVoiceOpen(false)}
+          onOpenTextChat={() => setAiOpen(true)}
+        />
+
         <PrimeAIChat 
           open={aiOpen} 
           onClose={() => setAiOpen(false)} 
