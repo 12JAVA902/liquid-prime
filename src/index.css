@@ -119,13 +119,17 @@
 
 @layer components {
   .liquid-glass {
-    background: hsla(var(--glass-bg) / var(--glass-opacity));
-    backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
-    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.8);
+    background:
+      radial-gradient(120% 140% at 12% 0%, hsla(0, 0%, 100%, 0.10) 0%, hsla(0, 0%, 100%, 0) 45%),
+      hsla(var(--glass-bg) / var(--glass-opacity));
+    backdrop-filter: blur(var(--glass-blur)) saturate(1.9) brightness(1.06) contrast(1.05);
+    -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(1.9) brightness(1.06) contrast(1.05);
     border: 1px solid hsla(var(--glass-border) / var(--glass-border-opacity));
-    box-shadow: var(--glass-shadow);
+    box-shadow: var(--glass-shadow), var(--glass-refraction);
     position: relative;
     overflow: hidden;
+    isolation: isolate;
+    transition: box-shadow 0.4s cubic-bezier(0.22, 1, 0.36, 1), backdrop-filter 0.4s ease;
   }
 
   .liquid-glass::before {
@@ -137,14 +141,35 @@
     z-index: 1;
   }
 
+  /* Chromatic edge dispersion ring — the "thick glass" tell */
+  .liquid-glass::after,
+  .liquid-glass-elevated::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--glass-dispersion);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    opacity: 0.75;
+    pointer-events: none;
+    z-index: 2;
+  }
+
   .liquid-glass-elevated {
-    background: hsla(var(--glass-bg) / 0.18);
-    backdrop-filter: blur(60px) saturate(2);
-    -webkit-backdrop-filter: blur(60px) saturate(2);
-    border: 1px solid hsla(var(--glass-border) / 0.12);
-    box-shadow: var(--glass-shadow-elevated);
+    background:
+      radial-gradient(130% 150% at 10% -10%, hsla(0, 0%, 100%, 0.14) 0%, hsla(0, 0%, 100%, 0) 50%),
+      hsla(var(--glass-bg) / 0.16);
+    backdrop-filter: blur(64px) saturate(2.1) brightness(1.08) contrast(1.06);
+    -webkit-backdrop-filter: blur(64px) saturate(2.1) brightness(1.08) contrast(1.06);
+    border: 1px solid hsla(var(--glass-border) / 0.14);
+    box-shadow: var(--glass-shadow-elevated), var(--glass-refraction);
     position: relative;
     overflow: hidden;
+    isolation: isolate;
   }
 
   .liquid-glass-elevated::before {
@@ -158,10 +183,41 @@
 
   .liquid-glass-subtle {
     background: hsla(var(--glass-bg) / 0.06);
-    backdrop-filter: blur(20px) saturate(1.4);
-    -webkit-backdrop-filter: blur(20px) saturate(1.4);
-    border: 1px solid hsla(var(--glass-border) / 0.05);
+    backdrop-filter: blur(24px) saturate(1.5) brightness(1.04);
+    -webkit-backdrop-filter: blur(24px) saturate(1.5) brightness(1.04);
+    border: 1px solid hsla(var(--glass-border) / 0.07);
+    box-shadow: inset 0 1px 0 0 hsla(0, 0%, 100%, 0.16);
   }
+
+  /* Interactive lensing: glass thickens and lifts on hover */
+  .liquid-glass-interactive {
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.35s ease,
+      backdrop-filter 0.35s ease;
+  }
+
+  .liquid-glass-interactive:hover {
+    transform: translateY(-1px);
+    backdrop-filter: blur(56px) saturate(2.2) brightness(1.12);
+    -webkit-backdrop-filter: blur(56px) saturate(2.2) brightness(1.12);
+    box-shadow: var(--glass-shadow-elevated), var(--glass-refraction);
+  }
+
+  /* Travelling specular sheen across a glass surface */
+  .liquid-sheen::after {
+    content: '';
+    position: absolute;
+    inset: -40%;
+    background: linear-gradient(
+      100deg,
+      transparent 40%,
+      hsla(0, 0%, 100%, 0.18) 50%,
+      transparent 60%
+    );
+    animation: glass-sheen 6s ease-in-out infinite;
+    pointer-events: none;
+    z-index: 2;
+  }
+
 
   .depth-press {
     transition: transform 0.15s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.15s ease;
