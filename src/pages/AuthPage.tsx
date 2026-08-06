@@ -8,9 +8,12 @@ import { Phone, Eye, EyeOff, Shield, ChevronDown, Clock, CheckCircle2, XCircle }
 import { logSecurityEvent } from "@/utils/audit";
 import { validateEmail, validatePhone, validatePassword, sanitizeInput, sanitizeName, authRateLimiter, otpRateLimiter } from "@/utils/security";
 import { countryCodes, getCountryByCode, type CountryCode } from "@/utils/countryCodes";
+import AuthCinematic, { Figure } from "@/components/AuthCinematic";
+import PrimeLogo from "@/components/PrimeLogo";
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem("authIntroSeen"));
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
