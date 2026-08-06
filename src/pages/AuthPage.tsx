@@ -356,7 +356,7 @@ const AuthPage = () => {
           initial={{ opacity: 0, x: -40, rotate: 0 }}
           animate={{ opacity: 1, x: 0, rotate: 8 }}
           transition={{ delay: 0.55, duration: 1, ease: [0.16, 1, 0.3, 1] }}
-          className="pointer-events-none absolute bottom-[8%] left-[calc(50%-13rem)] hidden h-[46vh] max-h-[380px] origin-bottom-right lg:block"
+          className="pointer-events-none absolute bottom-[8%] left-[calc(50%-21rem)] hidden h-[46vh] max-h-[380px] origin-bottom-right lg:block"
           style={{ filter: "drop-shadow(0 24px 40px hsla(0,0%,0%,0.6))" }}
         >
           <Figure variant="stand" />
