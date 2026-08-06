@@ -213,11 +213,11 @@ const AuthCinematic = ({ onDone }: Props) => {
           {/* car */}
           <motion.div
             className="absolute bottom-[26%] left-1/2 w-[min(760px,105vw)] -translate-x-1/2"
-            initial={{ x: "85vw", scale: 1.15, opacity: 0 }}
+            initial={{ x: "70vw", scale: 1.15, opacity: 0 }}
             animate={
               stage >= 4
-                ? { x: "-6%", scale: 1, opacity: 0 }
-                : { x: "-6%", scale: 1, opacity: 1 }
+                ? { x: "-50%", scale: 1, opacity: 0 }
+                : { x: "-50%", scale: 1, opacity: 1 }
             }
             transition={{ duration: stage >= 4 ? 0.6 : 1.5, ease: EASE_CINEMATIC }}
           >
@@ -228,9 +228,9 @@ const AuthCinematic = ({ onDone }: Props) => {
           <AnimatePresence>
             {stage >= 2 && stage < 4 && (
               <motion.div
-                className="absolute bottom-[24%] left-1/2 h-[34vh] max-h-[300px]"
-                initial={{ x: "-40%", opacity: 0, scaleY: 0.9 }}
-                animate={{ x: "22%", opacity: 1, scaleY: 1 }}
+                className="absolute bottom-[24%] left-[40%] h-[34vh] max-h-[300px]"
+                initial={{ x: "60%", opacity: 0, scaleY: 0.9 }}
+                animate={{ x: "-40%", opacity: 1, scaleY: 1 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.9, ease: EASE_CINEMATIC }}
               >
@@ -243,7 +243,7 @@ const AuthCinematic = ({ onDone }: Props) => {
           <AnimatePresence>
             {stage >= 3 && stage < 4 && (
               <motion.div
-                className="absolute bottom-[24%] left-[54%] w-24"
+                className="absolute bottom-[24%] left-[36%] w-24"
                 initial={{ y: -90, rotate: 0, opacity: 0 }}
                 animate={{ y: [-90, 10, -18, 6, 0], rotate: [0, 140, 260, 340, 372], opacity: 1 }}
                 exit={{ opacity: 0 }}
@@ -258,7 +258,7 @@ const AuthCinematic = ({ onDone }: Props) => {
           <AnimatePresence>
             {stage >= 4 && (
               <motion.div
-                className="absolute left-[56%] bottom-[26%] -translate-x-1/2"
+                className="absolute left-[38%] bottom-[26%] -translate-x-1/2"
                 initial={{ scale: 0.1, opacity: 0 }}
                 animate={{ scale: 26, opacity: [0, 1, 0.9] }}
                 transition={{ duration: 0.85, ease: EASE_CINEMATIC }}
@@ -276,7 +276,7 @@ const AuthCinematic = ({ onDone }: Props) => {
           {/* vignette + film grain */}
           <div
             className="pointer-events-none absolute inset-0"
-            style={{ background: "radial-gradient(115% 90% at 50% 55%, transparent 40%, hsla(0,0%,0%,0.85) 100%)" }}
+            style={{ background: "radial-gradient(115% 90% at 50% 55%, transparent 52%, hsla(0,0%,0%,0.7) 100%)" }}
           />
 
           <button
