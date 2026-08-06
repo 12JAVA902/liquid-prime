@@ -8,9 +8,12 @@ import { Phone, Eye, EyeOff, Shield, ChevronDown, Clock, CheckCircle2, XCircle }
 import { logSecurityEvent } from "@/utils/audit";
 import { validateEmail, validatePhone, validatePassword, sanitizeInput, sanitizeName, authRateLimiter, otpRateLimiter } from "@/utils/security";
 import { countryCodes, getCountryByCode, type CountryCode } from "@/utils/countryCodes";
+import AuthCinematic, { Figure } from "@/components/AuthCinematic";
+import PrimeLogo from "@/components/PrimeLogo";
 
 const AuthPage = () => {
   const [isSignUp, setIsSignUp] = useState(false);
+  const [showIntro, setShowIntro] = useState(() => !sessionStorage.getItem("authIntroSeen"));
   const [authMethod, setAuthMethod] = useState<"email" | "phone">("email");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -342,22 +345,36 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
+      {showIntro && <AuthCinematic onDone={() => { sessionStorage.setItem("authIntroSeen", "1"); setShowIntro(false); }} />}
+
       <div className="absolute top-1/4 left-1/3 w-80 h-80 rounded-full opacity-[0.05]" style={{ background: "radial-gradient(circle, hsl(210,100%,60%), transparent)" }} />
       <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, hsl(280,70%,55%), transparent)" }} />
+
+      {/* the character casually leans against the edge of the form */}
+      {!showIntro && (
+        <motion.div
+          initial={{ opacity: 0, x: -40, rotate: 0 }}
+          animate={{ opacity: 1, x: 0, rotate: 8 }}
+          transition={{ delay: 0.55, duration: 1, ease: [0.16, 1, 0.3, 1] }}
+          className="pointer-events-none absolute bottom-[8%] left-[calc(50%-21rem)] hidden h-[46vh] max-h-[380px] origin-bottom-right lg:block"
+          style={{ filter: "drop-shadow(0 24px 40px hsla(0,0%,0%,0.6))" }}
+        >
+          <Figure variant="stand" />
+        </motion.div>
+      )}
 
       <motion.div
         initial={{ opacity: 0, y: 30, scale: 0.97 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-        className="w-full max-w-sm"
+        className="w-full max-w-sm relative z-10"
       >
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 mb-3">
-            <div className="w-10 h-10 rounded-2xl liquid-glass flex items-center justify-center">
-              <span className="text-xl font-bold text-primary relative z-10">P</span>
-            </div>
+            <PrimeLogo size={44} />
             <h1 className="text-2xl text-display text-foreground">Primegram</h1>
           </div>
+
           <p className="text-sm text-muted-foreground">{isSignUp ? "Create your account" : "Welcome back"}</p>
         </div>
 
