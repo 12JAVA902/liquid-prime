@@ -345,7 +345,7 @@ const AuthPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-6 relative overflow-hidden">
-      {showIntro && <AuthCinematic onDone={() => setShowIntro(false)} />}
+      {showIntro && <AuthCinematic onDone={() => { sessionStorage.setItem("authIntroSeen", "1"); setShowIntro(false); }} />}
 
       <div className="absolute top-1/4 left-1/3 w-80 h-80 rounded-full opacity-[0.05]" style={{ background: "radial-gradient(circle, hsl(210,100%,60%), transparent)" }} />
       <div className="absolute bottom-1/4 right-1/4 w-64 h-64 rounded-full opacity-[0.04]" style={{ background: "radial-gradient(circle, hsl(280,70%,55%), transparent)" }} />
