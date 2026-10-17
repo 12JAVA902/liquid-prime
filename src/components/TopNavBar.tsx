@@ -2,7 +2,7 @@ import { useState } from "react";
 import { motion, useMotionValueEvent, useScroll } from "framer-motion";
 import { MessageCircle, Settings, Wallet, UserPlus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import logoAsset from "@/assets/primegram-logo.png.asset.json";
+import pLogo from "@/assets/p-logo-lux.png";
 
 const TopNavBar = () => {
   const [collapsed, setCollapsed] = useState(false);
@@ -46,7 +46,7 @@ const TopNavBar = () => {
             className="w-8 h-8 rounded-lg overflow-hidden flex items-center justify-center depth-press"
             aria-label="Open Heiji AI"
           >
-            <img src={logoAsset.url} alt="Primegram" className="w-full h-full object-contain" />
+            <img src={pLogo} alt="Primegram" className="w-full h-full object-contain" />
           </button>
           <motion.h1
             className="text-headline text-foreground"
