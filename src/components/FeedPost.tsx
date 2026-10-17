@@ -5,6 +5,7 @@ import { useMute } from "@/contexts/MuteContext";
 import VerifiedBadge from "@/components/VerifiedBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import CommentsSection from "@/components/CommentsSection";
 
 interface FeedPostProps {
   image: string;
@@ -34,6 +35,17 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
   const lastTap = useRef(0);
   const videoRef = useRef<HTMLVideoElement>(null);
   const observerRef = useRef<IntersectionObserver | null>(null);
+  const [showComments, setShowComments] = useState(false);
+  const [commentCount, setCommentCount] = useState(comments);
+
+  const sharePost = async () => {
+    const url = window.location.origin;
+    const text = `${username} on Primegram: ${caption}`;
+    try {
+      if (navigator.share) await navigator.share({ title: "Primegram", text, url });
+      else { await navigator.clipboard.writeText(`${text} ${url}`); toast.success("Link copied"); }
+    } catch { /* user cancelled */ }
+  };
 
   const isVideo = mediaType === "video";
   const isUrl = avatar.startsWith("http");
@@ -227,8 +239,8 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
                 <Heart className={`w-6 h-6 transition-colors ${liked ? "fill-like text-like" : "text-foreground"}`} />
               </motion.div>
             </button>
-            <button className="depth-press"><MessageCircle className="w-6 h-6 text-foreground" /></button>
-            <button className="depth-press"><Send className="w-6 h-6 text-foreground" /></button>
+            <button onClick={() => setShowComments((s) => !s)} className="depth-press" aria-label="Comments"><MessageCircle className="w-6 h-6 text-foreground" /></button>
+            <button onClick={sharePost} className="depth-press" aria-label="Share"><Send className="w-6 h-6 text-foreground" /></button>
             <div className="flex-1" />
             <button onClick={() => setSaved(!saved)} className="depth-press">
               <Bookmark className={`w-6 h-6 transition-colors ${saved ? "fill-foreground text-foreground" : "text-foreground"}`} />
@@ -239,7 +251,10 @@ const FeedPost = ({ image, mediaType = "image", username, avatar, caption, likes
             <span className="font-semibold">{username}</span>{" "}
             <span className="text-foreground/70">{caption}</span>
           </p>
-          {comments > 0 && <p className="text-sm text-muted-foreground mt-1">View all {comments} comments</p>}
+          {!showComments && commentCount > 0 && (
+            <button onClick={() => setShowComments(true)} className="text-sm text-muted-foreground mt-1">View all {commentCount} comments</button>
+          )}
+          {showComments && postId && <CommentsSection postId={postId} onCountChange={setCommentCount} />}
         </div>
       </div>
     </motion.div>
