@@ -15,15 +15,17 @@
     --popover: 220 20% 8%;
     --popover-foreground: 0 0% 98%;
 
-    /* Tri-color brand: blue · red · green */
+    /* Four-color brand: yellow · red · green · blue */
     --brand-blue: 214 100% 56%;
     --brand-red: 0 85% 56%;
     --brand-green: 145 72% 45%;
+    --brand-yellow: 45 100% 55%;
     --brand-gradient: linear-gradient(
       120deg,
-      hsl(var(--brand-blue)) 0%,
-      hsl(var(--brand-red)) 50%,
-      hsl(var(--brand-green)) 100%
+      hsl(var(--brand-yellow)) 0%,
+      hsl(var(--brand-red)) 33%,
+      hsl(var(--brand-green)) 66%,
+      hsl(var(--brand-blue)) 100%
     );
 
     --primary: 214 100% 56%;

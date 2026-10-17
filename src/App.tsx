@@ -24,6 +24,7 @@ import DiscoverPage from "./pages/DiscoverPage";
 import OAuthConsent from "./pages/OAuthConsent";
 import AdminPage from "./pages/AdminPage";
 import GlobalRealtimeListener from "./components/GlobalRealtimeListener";
+import ResetPasswordPage from "./pages/ResetPasswordPage";
 
 const queryClient = new QueryClient();
 
@@ -75,6 +76,7 @@ const App = () => (
             <Route path="/discover" element={<ProtectedRoute><DiscoverPage /></ProtectedRoute>} />
             <Route path="/admin" element={<ProtectedRoute><AdminPage /></ProtectedRoute>} />
             <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
+            <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           </MuteProvider>
