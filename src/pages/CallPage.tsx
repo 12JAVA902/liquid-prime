@@ -212,9 +212,17 @@ const CallPage = () => {
     });
 
     const timer = setInterval(() => setCallTime((t) => t + 1), 1000);
+    // Give up if the other side never answers within 45 seconds.
+    const noAnswer = setTimeout(() => {
+      if (!endedRef.current && pcRef.current?.connectionState !== "connected") {
+        toast.error("No answer");
+        hangUp();
+      }
+    }, 45000);
     return () => {
       cancelled = true;
       clearInterval(timer);
+      clearTimeout(noAnswer);
       cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
