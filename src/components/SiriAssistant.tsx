@@ -228,10 +228,15 @@ const SiriAssistant = ({ open, onClose, onOpenTextChat }: Props) => {
       if (final.trim() && !busyRef.current) askAI(final.trim());
     };
     rec.onerror = (e: any) => {
-      if (e?.error === "not-allowed") {
+      const err = e?.error;
+      if (err === "not-allowed" || err === "service-not-allowed") {
         wantListeningRef.current = false;
         setPhaseSafe("idle");
-        toast.error("Microphone permission denied");
+        toast.error("Microphone is blocked — allow it in your browser, or open the app in its own tab");
+      } else if (err === "audio-capture") {
+        toast.error("No microphone found");
+      } else if (err === "network") {
+        toast.error("Voice recognition needs an internet connection");
       }
     };
     rec.onend = () => {
@@ -251,13 +256,17 @@ const SiriAssistant = ({ open, onClose, onOpenTextChat }: Props) => {
     try {
       rec.start();
       setPhaseSafe("listening");
-    } catch {}
+    } catch (err) {
+      console.warn("Speech recognition failed to start", err);
+    }
   }, [askAI]);
 
-  const beginSession = useCallback(async () => {
+  const beginSession = useCallback(() => {
     wantListeningRef.current = true;
-    await startMeter();
+    // Start recognition synchronously inside the tap so the browser keeps the user gesture
     startRecognition();
+    // Level meter is cosmetic; start it after recognition has claimed the mic
+    setTimeout(() => { startMeter(); }, 600);
   }, [startMeter, startRecognition]);
 
   const endSession = useCallback(() => {

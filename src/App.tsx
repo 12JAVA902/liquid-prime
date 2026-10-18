@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -9,22 +10,22 @@ import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
 import WelcomePage from "./pages/WelcomePage";
-import MessagesPage from "./pages/MessagesPage";
-import SettingsPage from "./pages/SettingsPage";
-import NotificationsPage from "./pages/NotificationsPage";
-import WalletPage from "./pages/WalletPage";
-import ReelsPage from "./pages/ReelsPage";
-import ProfilePage from "./pages/ProfilePage";
-import CallPage from "./pages/CallPage";
-import SearchPage from "./pages/SearchPage";
-import CreatePostPage from "./pages/CreatePostPage";
-import SportsPage from "./pages/SportsPage";
-import MoviesPage from "./pages/MoviesPage";
-import DiscoverPage from "./pages/DiscoverPage";
-import OAuthConsent from "./pages/OAuthConsent";
-import AdminPage from "./pages/AdminPage";
+const MessagesPage = lazy(() => import("./pages/MessagesPage"));
+const SettingsPage = lazy(() => import("./pages/SettingsPage"));
+const NotificationsPage = lazy(() => import("./pages/NotificationsPage"));
+const WalletPage = lazy(() => import("./pages/WalletPage"));
+const ReelsPage = lazy(() => import("./pages/ReelsPage"));
+const ProfilePage = lazy(() => import("./pages/ProfilePage"));
+const CallPage = lazy(() => import("./pages/CallPage"));
+const SearchPage = lazy(() => import("./pages/SearchPage"));
+const CreatePostPage = lazy(() => import("./pages/CreatePostPage"));
+const SportsPage = lazy(() => import("./pages/SportsPage"));
+const MoviesPage = lazy(() => import("./pages/MoviesPage"));
+const DiscoverPage = lazy(() => import("./pages/DiscoverPage"));
+const OAuthConsent = lazy(() => import("./pages/OAuthConsent"));
+const AdminPage = lazy(() => import("./pages/AdminPage"));
 import GlobalRealtimeListener from "./components/GlobalRealtimeListener";
-import ResetPasswordPage from "./pages/ResetPasswordPage";
+const ResetPasswordPage = lazy(() => import("./pages/ResetPasswordPage"));
 
 const queryClient = new QueryClient();
 
@@ -58,6 +59,7 @@ const App = () => (
         <AuthProvider>
           <MuteProvider>
           <GlobalRealtimeListener />
+          <Suspense fallback={<div className="min-h-screen bg-background" />}>
           <Routes>
             <Route path="/welcome" element={<AuthRoute><WelcomePage /></AuthRoute>} />
             <Route path="/auth" element={<AuthRoute><AuthPage /></AuthRoute>} />
@@ -79,6 +81,7 @@ const App = () => (
             <Route path="/reset-password" element={<ResetPasswordPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          </Suspense>
           </MuteProvider>
         </AuthProvider>
       </BrowserRouter>
