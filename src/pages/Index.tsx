@@ -13,22 +13,35 @@ const Index = () => {
 
   useEffect(() => {
     const fetchPosts = async () => {
-      const { data } = await supabase
-        .from("posts")
-        .select("*")
-        .neq("media_type", "story")
-        .order("created_at", { ascending: false })
-        .limit(50);
+      const { data: { user } } = await supabase.auth.getUser();
+      const [{ data }, { data: follows }] = await Promise.all([
+        supabase
+          .from("posts")
+          .select("*")
+          .neq("media_type", "story")
+          .order("created_at", { ascending: false })
+          .limit(50),
+        user
+          ? supabase.from("follows").select("following_id").eq("follower_id", user.id)
+          : Promise.resolve({ data: [] as any[] }),
+      ]);
 
       if (data && data.length > 0) {
-        const userIds = [...new Set(data.map(p => p.user_id))];
+        const followed = new Set((follows || []).map(f => f.following_id));
+        // People you follow come first, then everyone else — newest first within each group.
+        const sorted = [...data].sort((a, b) => {
+          const af = followed.has(a.user_id) ? 0 : 1;
+          const bf = followed.has(b.user_id) ? 0 : 1;
+          return af - bf;
+        });
+        const userIds = [...new Set(sorted.map(p => p.user_id))];
         const { data: profiles } = await supabase
           .from("profiles")
           .select("user_id, display_name, username, avatar_url, is_verified, is_official")
           .in("user_id", userIds);
 
         const profileMap = new Map(profiles?.map(p => [p.user_id, p]) || []);
-        setPosts(data.map(post => ({ ...post, profile: profileMap.get(post.user_id) || null })));
+        setPosts(sorted.map(post => ({ ...post, profile: profileMap.get(post.user_id) || null })));
       } else {
         setPosts([]);
       }

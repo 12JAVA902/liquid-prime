@@ -3,6 +3,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { PhoneOff, Mic, MicOff, Video, VideoOff, RefreshCw } from "lucide-react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { startRingtone } from "@/hooks/useRingtone";
@@ -69,10 +70,18 @@ const CallPage = () => {
     if (endedRef.current) return;
     endedRef.current = true;
     send("hangup");
+    // If we hang up while still ringing, cancel the recipient's ringtone.
+    if (status === "ringing" && !isCallee && userId) {
+      supabase.channel(`calls-${userId}`).send({
+        type: "broadcast",
+        event: "ring-cancel",
+        payload: { from: user?.id },
+      });
+    }
     setStatus("ended");
     cleanup();
     setTimeout(() => navigate("/messages"), 600);
-  }, [cleanup, navigate, send]);
+  }, [cleanup, navigate, send, status, isCallee, userId, user?.id]);
 
   useEffect(() => {
     if (!userId || !user) return;
@@ -204,9 +213,17 @@ const CallPage = () => {
     });
 
     const timer = setInterval(() => setCallTime((t) => t + 1), 1000);
+    // Give up if the other side never answers within 45 seconds.
+    const noAnswer = setTimeout(() => {
+      if (!endedRef.current && pcRef.current?.connectionState !== "connected") {
+        toast.error("No answer");
+        hangUp();
+      }
+    }, 45000);
     return () => {
       cancelled = true;
       clearInterval(timer);
+      clearTimeout(noAnswer);
       cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
