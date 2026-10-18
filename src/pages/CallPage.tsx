@@ -69,10 +69,18 @@ const CallPage = () => {
     if (endedRef.current) return;
     endedRef.current = true;
     send("hangup");
+    // If we hang up while still ringing, cancel the recipient's ringtone.
+    if (status === "ringing" && !isCallee && userId) {
+      supabase.channel(`calls-${userId}`).send({
+        type: "broadcast",
+        event: "ring-cancel",
+        payload: { from: user?.id },
+      });
+    }
     setStatus("ended");
     cleanup();
     setTimeout(() => navigate("/messages"), 600);
-  }, [cleanup, navigate, send]);
+  }, [cleanup, navigate, send, status, isCallee, userId, user?.id]);
 
   useEffect(() => {
     if (!userId || !user) return;
