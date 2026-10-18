@@ -103,18 +103,60 @@ const MessagesPage = () => {
     finally { aiReplyingRef.current = false; }
   };
 
-  // Fetch users to chat with
+  // Build the conversation list: people you've chatted with (latest first,
+  // with unread counts) plus people you follow, then keep it live.
   useEffect(() => {
     if (!user) return;
-    const fetchConversations = async () => {
-      const { data } = await supabase
+
+    const load = async () => {
+      const [{ data: msgs }, { data: follows }] = await Promise.all([
+        supabase
+          .from("messages")
+          .select("sender_id, receiver_id, content, created_at, read")
+          .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
+          .order("created_at", { ascending: false })
+          .limit(500),
+        supabase.from("follows").select("following_id").eq("follower_id", user.id),
+      ]);
+
+      const partnerIds = new Set<string>();
+      const meta = new Map<string, { lastMsg: string; lastTime: string; unread: number }>();
+      for (const m of msgs || []) {
+        const other = m.sender_id === user.id ? m.receiver_id : m.sender_id;
+        if (!meta.has(other)) {
+          meta.set(other, { lastMsg: m.content, lastTime: m.created_at, unread: 0 });
+        }
+        if (m.receiver_id === user.id && !m.read) {
+          meta.get(other)!.unread += 1;
+        }
+        partnerIds.add(other);
+      }
+      for (const f of follows || []) partnerIds.add(f.following_id);
+
+      if (partnerIds.size === 0) { setConversations([]); return; }
+      const { data: profiles } = await supabase
         .from("profiles")
-        .select("user_id, display_name, username")
-        .neq("user_id", user.id)
-        .limit(20);
-      if (data) setConversations(data);
+        .select("user_id, display_name, username, avatar_url")
+        .in("user_id", Array.from(partnerIds));
+
+      const list = (profiles || []).map(p => ({ ...p, ...meta.get(p.user_id) }));
+      list.sort((a, b) => {
+        if (a.lastTime && b.lastTime) return b.lastTime.localeCompare(a.lastTime);
+        if (a.lastTime) return -1;
+        if (b.lastTime) return 1;
+        return 0;
+      });
+      setConversations(list);
     };
-    fetchConversations();
+
+    load();
+
+    // Live refresh when any message involving me arrives or is read.
+    const ch = supabase
+      .channel(`conv-list-${user.id}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "messages" }, () => load())
+      .subscribe();
+    return () => { supabase.removeChannel(ch); };
   }, [user]);
 
   // Ring the recipient, then open the liquid-glass call screen (real WebRTC)

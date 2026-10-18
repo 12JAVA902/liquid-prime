@@ -20,6 +20,9 @@ const SearchPage = () => {
     supabase.from("follows").select("following_id").eq("follower_id", user.id).then(({ data }) => {
       if (data) setFollowing(new Set(data.map(f => f.following_id)));
     });
+    // Show suggested people right away, before any search.
+    supabase.from("profiles").select("*").neq("user_id", user.id).order("created_at", { ascending: false }).limit(20)
+      .then(({ data }) => setResults(data || []));
   }, [user]);
 
   const search = async () => {
