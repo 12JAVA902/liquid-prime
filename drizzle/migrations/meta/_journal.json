@@ -8,6 +8,13 @@
       "when": 1792230759075,
       "tag": "0000_official_admin_new_email",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1792299805565,
+      "tag": "0001_restrict_profiles_follows_to_signed_in",
+      "breakpoints": true
     }
   ]
 }
