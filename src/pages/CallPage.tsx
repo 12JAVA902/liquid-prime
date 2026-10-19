@@ -8,8 +8,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { startRingtone } from "@/hooks/useRingtone";
 import { getRtcConfig } from "@/utils/iceConfig";
+import { rtcChannelName } from "@/utils/calls";
+import { Button } from "@/components/ui/button";
 
-export const rtcChannelName = (a: string, b: string) => `rtc-${[a, b].sort().join("--")}`;
 
 
 type Status = "ringing" | "connecting" | "connected" | "ended";
@@ -20,6 +21,7 @@ const CallPage = () => {
   const [params] = useSearchParams();
   const isCallee = params.get("incoming") === "1";
   const audioOnly = params.get("audio") === "1";
+  const callId = params.get("call");
   const { user } = useAuth();
 
   const [muted, setMuted] = useState(false);
@@ -71,21 +73,19 @@ const CallPage = () => {
     endedRef.current = true;
     send("hangup");
     // If we hang up while still ringing, cancel the recipient's ringtone.
-    if (status === "ringing" && !isCallee && userId) {
-      supabase.channel(`calls-${userId}`).send({
-        type: "broadcast",
-        event: "ring-cancel",
-        payload: { from: user?.id },
-      });
-    }
+    if (callId) void supabase.from("call_invitations").update({ status: "ended" }).eq("id", callId);
     setStatus("ended");
     cleanup();
     setTimeout(() => navigate("/messages"), 600);
-  }, [cleanup, navigate, send, status, isCallee, userId, user?.id]);
+  }, [cleanup, navigate, send, callId]);
 
   useEffect(() => {
     if (!userId || !user) return;
     let cancelled = false;
+    endedRef.current = false;
+    pendingIce.current = [];
+    let readyTimer: ReturnType<typeof setInterval> | undefined;
+    let invitationChannel: ReturnType<typeof supabase.channel> | undefined;
 
     supabase
       .from("profiles")
@@ -97,11 +97,18 @@ const CallPage = () => {
       });
 
     const start = async () => {
+      if (!callId || userId === user.id) throw new Error("Start your call from Messages or online members.");
+      const { data: invitation, error } = await supabase.from("call_invitations").select("*").eq("id", callId).single();
+      if (error || !invitation || (isCallee ? invitation.receiver_id !== user.id || invitation.caller_id !== userId : invitation.caller_id !== user.id || invitation.receiver_id !== userId) || !["ringing", "accepted"].includes(invitation.status)) throw new Error("This call is no longer available.");
+      if (cancelled) return;
+      invitationChannel = supabase.channel(`call-state-${callId}`).on("postgres_changes", {
+        event: "UPDATE", schema: "public", table: "call_invitations", filter: `id=eq.${callId}`,
+      }, ({ new: row }) => { if (row.status === "ended" || row.status === "declined") hangUp(); }).subscribe();
       const pc = new RTCPeerConnection(getRtcConfig());
       pcRef.current = pc;
 
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: audioOnly ? false : { facingMode: facing, width: { ideal: 1280 }, height: { ideal: 720 } },
+        video: audioOnly ? false : { facingMode: facing, width: { ideal: 1920 }, height: { ideal: 1080 } },
         audio: true,
       });
       if (cancelled) {
@@ -144,14 +151,30 @@ const CallPage = () => {
       };
 
 
-      const channel = supabase.channel(rtcChannelName(user.id, userId), {
-        config: { broadcast: { self: false } },
+      const channel = supabase.channel(`${rtcChannelName(user.id, userId)}--${callId}`, {
+        config: { private: true, broadcast: { self: false } },
       });
       channelRef.current = channel;
+      let makingOffer = false;
+      const offerToPeer = async () => {
+        if (isCallee || makingOffer || cancelled) return;
+        makingOffer = true;
+        try {
+          if (pc.signalingState === "have-local-offer" && pc.localDescription) {
+            send("offer", { sdp: pc.localDescription });
+          } else if (pc.signalingState === "stable") {
+            const offer = await pc.createOffer({ iceRestart: pc.connectionState === "disconnected" });
+            await pc.setLocalDescription(offer);
+            send("offer", { sdp: pc.localDescription });
+          }
+        } finally { makingOffer = false; }
+      };
+      channel.on("broadcast", { event: "ready" }, ({ payload }) => { if (payload.from === userId) void offerToPeer(); });
 
       channel
         .on("broadcast", { event: "offer" }, async ({ payload }: any) => {
-          if (payload.from === user.id || !pcRef.current) return;
+          if (payload.from !== userId || !pcRef.current || !isCallee || pc.signalingState !== "stable") return;
+          if (readyTimer) clearInterval(readyTimer);
           setStatus("connecting");
           await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.sdp));
           for (const c of pendingIce.current) await pcRef.current.addIceCandidate(c);
@@ -161,7 +184,7 @@ const CallPage = () => {
           send("answer", { sdp: answer });
         })
         .on("broadcast", { event: "answer" }, async ({ payload }: any) => {
-          if (payload.from === user.id || !pcRef.current) return;
+          if (payload.from !== userId || !pcRef.current) return;
           if (pcRef.current.signalingState === "have-local-offer") {
             await pcRef.current.setRemoteDescription(new RTCSessionDescription(payload.sdp));
             for (const c of pendingIce.current) await pcRef.current.addIceCandidate(c);
@@ -169,7 +192,7 @@ const CallPage = () => {
           }
         })
         .on("broadcast", { event: "ice" }, async ({ payload }: any) => {
-          if (payload.from === user.id || !pcRef.current) return;
+          if (payload.from !== userId || !pcRef.current) return;
           if (pcRef.current.remoteDescription) {
             await pcRef.current.addIceCandidate(payload.candidate).catch(() => {});
           } else {
@@ -191,28 +214,26 @@ const CallPage = () => {
             setStatus("connecting");
           } else {
             stopRingRef.current = startRingtone();
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
-            send("offer", { sdp: offer });
+            // Wait for the recipient's ready signal instead of sending an offer into an empty room.
           }
         });
 
-      if (!isCallee) {
-        channel.on("broadcast", { event: "ready" }, async () => {
-          if (!pcRef.current || pcRef.current.signalingState !== "stable") return;
-          const offer = await pcRef.current.createOffer();
-          await pcRef.current.setLocalDescription(offer);
-          send("offer", { sdp: offer });
-        });
-      }
+      if (isCallee) readyTimer = setInterval(() => {
+        if (pc.signalingState === "stable" && pc.connectionState !== "connected") send("ready");
+      }, 1500);
+      pc.onnegotiationneeded = () => {
+        if (pc.remoteDescription) void offerToPeer();
+      };
     };
 
     start().catch((err) => {
       console.error("Call init failed:", err);
+      toast.error(err instanceof Error ? err.message : "Allow camera and microphone access to call.");
+      cleanup();
       setStatus("ended");
     });
 
-    const timer = setInterval(() => setCallTime((t) => t + 1), 1000);
+    const timer = setInterval(() => { if (pcRef.current?.connectionState === "connected") setCallTime(t => t + 1); }, 1000);
     // Give up if the other side never answers within 45 seconds.
     const noAnswer = setTimeout(() => {
       if (!endedRef.current && pcRef.current?.connectionState !== "connected") {
@@ -224,6 +245,9 @@ const CallPage = () => {
       cancelled = true;
       clearInterval(timer);
       clearTimeout(noAnswer);
+      if (readyTimer) clearInterval(readyTimer);
+      if (invitationChannel) void supabase.removeChannel(invitationChannel);
+      if (callId) void supabase.from("call_invitations").update({ status: "ended" }).eq("id", callId);
       cleanup();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -268,7 +292,7 @@ const CallPage = () => {
     `${Math.floor(s / 60).toString().padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col relative overflow-hidden">
+    <div className="h-dvh bg-background flex flex-col relative overflow-hidden">
       {/* Liquid glass blobs — blue · red · green */}
       <div className="absolute inset-0 -z-10">
         <motion.div
@@ -331,34 +355,34 @@ const CallPage = () => {
       >
         <div className="mx-auto max-w-sm liquid-glass-elevated rounded-full py-3 px-4">
           <div className="flex justify-center gap-3 relative z-10">
-            <button
+            <Button variant="ghost" size="icon"
               onClick={toggleMute}
               aria-label="Toggle microphone"
               className={`depth-press w-14 h-14 rounded-full flex items-center justify-center ${muted ? "bg-destructive/30" : "liquid-glass-subtle"}`}
             >
               {muted ? <MicOff className="w-6 h-6 text-destructive" /> : <Mic className="w-6 h-6 text-foreground" />}
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost" size="icon" disabled={audioOnly}
               onClick={toggleVideo}
               aria-label="Toggle camera"
               className={`depth-press w-14 h-14 rounded-full flex items-center justify-center ${!videoOn ? "bg-destructive/30" : "liquid-glass-subtle"}`}
             >
               {videoOn ? <Video className="w-6 h-6 text-foreground" /> : <VideoOff className="w-6 h-6 text-destructive" />}
-            </button>
-            <button
+            </Button>
+            <Button variant="ghost" size="icon" disabled={audioOnly}
               onClick={flipCamera}
               aria-label="Switch camera"
               className="depth-press w-14 h-14 rounded-full liquid-glass-subtle flex items-center justify-center"
             >
               <RefreshCw className="w-6 h-6 text-foreground" />
-            </button>
-            <button
+            </Button>
+            <Button variant="destructive" size="icon"
               onClick={hangUp}
               aria-label="End call"
               className="depth-press w-14 h-14 rounded-full bg-destructive flex items-center justify-center shadow-lg shadow-destructive/50"
             >
               <PhoneOff className="w-6 h-6 text-destructive-foreground" />
-            </button>
+            </Button>
           </div>
         </div>
       </motion.div>
