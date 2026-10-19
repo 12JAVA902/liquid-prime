@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { MuteProvider } from "@/contexts/MuteContext";
+import { OnlineProvider } from "@/contexts/OnlineContext";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import AuthPage from "./pages/AuthPage";
@@ -58,6 +59,7 @@ const App = () => (
       <BrowserRouter>
         <AuthProvider>
           <MuteProvider>
+          <OnlineProvider>
           <GlobalRealtimeListener />
           <Suspense fallback={<div className="min-h-screen bg-background" />}>
           <Routes>
@@ -82,6 +84,7 @@ const App = () => (
             <Route path="*" element={<NotFound />} />
           </Routes>
           </Suspense>
+          </OnlineProvider>
           </MuteProvider>
         </AuthProvider>
       </BrowserRouter>

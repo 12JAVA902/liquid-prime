@@ -14,6 +14,33 @@ export type Database = {
   }
   public: {
     Tables: {
+      call_invitations: {
+        Row: {
+          audio: boolean
+          caller_id: string
+          created_at: string
+          id: string
+          receiver_id: string
+          status: string
+        }
+        Insert: {
+          audio?: boolean
+          caller_id: string
+          created_at?: string
+          id?: string
+          receiver_id: string
+          status?: string
+        }
+        Update: {
+          audio?: boolean
+          caller_id?: string
+          created_at?: string
+          id?: string
+          receiver_id?: string
+          status?: string
+        }
+        Relationships: []
+      }
       follows: {
         Row: {
           created_at: string

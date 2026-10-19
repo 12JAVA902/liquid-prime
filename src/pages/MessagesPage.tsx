@@ -6,6 +6,9 @@ import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
+import { beginCall } from "@/utils/calls";
+import { useOnline } from "@/contexts/OnlineContext";
+import { Button } from "@/components/ui/button";
 
 const CHAT_URL = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/prime-ai-chat`;
 
@@ -30,6 +33,7 @@ interface Message {
 const MessagesPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { ids: onlineIds } = useOnline();
   const [conversations, setConversations] = useState<ChatUser[]>([]);
   const [activeChat, setActiveChat] = useState<ChatUser | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
@@ -127,7 +131,8 @@ const MessagesPage = () => {
           meta.set(other, { lastMsg: m.content, lastTime: m.created_at, unread: 0 });
         }
         if (m.receiver_id === user.id && !m.read) {
-          meta.get(other)!.unread += 1;
+          const entry = meta.get(other);
+          if (entry) entry.unread += 1;
         }
         partnerIds.add(other);
       }
@@ -163,19 +168,10 @@ const MessagesPage = () => {
   const startCall = async (recipient: ChatUser, audioOnly = false) => {
     if (!user) return;
     try {
-      await supabase.channel(`calls-${recipient.user_id}`).send({
-        type: "broadcast",
-        event: "ring",
-        payload: {
-          callerId: user.id,
-          callerName: user.user_metadata?.display_name || user.user_metadata?.full_name || user.email,
-          audio: audioOnly,
-        },
-      });
+      navigate(await beginCall(user.id, recipient.user_id, audioOnly));
     } catch (err) {
-      console.error("Ring failed:", err);
+      toast.error("Could not start the call. Please try again.");
     }
-    navigate(`/call/${recipient.user_id}${audioOnly ? "?audio=1" : ""}`);
   };
 
 
@@ -219,7 +215,7 @@ const MessagesPage = () => {
           (newMsg.sender_id === user.id && newMsg.receiver_id === activeChat.user_id) ||
           (newMsg.sender_id === activeChat.user_id && newMsg.receiver_id === user.id)
         ) {
-          setMessages(prev => [...prev, newMsg]);
+          setMessages(prev => prev.some(m => m.id === newMsg.id) ? prev : [...prev, newMsg]);
           // AI Mode auto-reply when message comes from the other party
           if (newMsg.sender_id === activeChat.user_id && aiModeChats.has(activeChat.user_id)) {
             aiAutoReply(newMsg, activeChat);
@@ -239,16 +235,18 @@ const MessagesPage = () => {
     if (!msg.trim() || !activeChat || !user) return;
     const content = msg.trim();
     setMsg("");
-    await supabase.from("messages").insert({
+    const { data, error } = await supabase.from("messages").insert({
       sender_id: user.id,
       receiver_id: activeChat.user_id,
       content,
-    });
+    }).select().single();
+    if (error) { setMsg(content); toast.error("Message not sent. Try again."); return; }
+    if (data) setMessages(prev => prev.some(m => m.id === data.id) ? prev : [...prev, data]);
   };
 
   if (activeChat) {
     return (
-          <div className="min-h-screen bg-background flex flex-col">
+          <div className="h-dvh bg-background flex flex-col">
             <div className="liquid-glass-elevated safe-area-top">
               <div className="flex items-center gap-3 px-4 py-3 relative z-10">
                 <button onClick={() => setActiveChat(null)} className="depth-press">
@@ -257,8 +255,9 @@ const MessagesPage = () => {
                 <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary text-sm font-semibold">
                   {(activeChat.display_name || "U")[0].toUpperCase()}
                 </div>
-                <span className="text-headline text-foreground text-sm flex-1">
+                <span className="text-headline text-foreground text-sm flex-1 min-w-0 truncate">
                   {activeChat.display_name || activeChat.username || "User"}
+                  <span className="block text-xs text-muted-foreground">{onlineIds.includes(activeChat.user_id) ? "Online" : "Offline"}</span>
                   {aiModeChats.has(activeChat.user_id) && (
                     <span className="ml-2 text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary">AI ON</span>
                   )}
@@ -270,22 +269,22 @@ const MessagesPage = () => {
                 >
                   <Sparkles className={`w-4 h-4 ${aiModeChats.has(activeChat.user_id) ? "text-primary-foreground" : "text-foreground"}`} />
                 </button>
-                <button onClick={() => startCall(activeChat, true)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
+                <Button variant="ghost" size="icon" aria-label="Start audio call" title="Audio call" onClick={() => startCall(activeChat, true)} className="depth-press w-8 h-8 shrink-0 rounded-full liquid-glass-subtle">
                   <Phone className="w-4 h-4 text-foreground" />
-                </button>
-                <button onClick={() => startCall(activeChat)} className="depth-press w-8 h-8 rounded-full liquid-glass-subtle flex items-center justify-center">
+                </Button>
+                <Button variant="ghost" size="icon" aria-label="Start video call" title="Video call" onClick={() => startCall(activeChat)} className="depth-press w-8 h-8 shrink-0 rounded-full liquid-glass-subtle">
                   <Video className="w-4 h-4 text-foreground" />
-                </button>
+                </Button>
               </div>
             </div>
 
-            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+            <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 && (
                 <div className="text-center text-muted-foreground text-sm py-10">No messages yet. Say hello!</div>
               )}
               {messages.map((m) => (
                 <div key={m.id} className={`flex ${m.sender_id === user?.id ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[75%] px-4 py-2.5 rounded-2xl text-sm ${
+                  <div className={`max-w-[75%] break-words whitespace-pre-wrap px-4 py-2.5 rounded-2xl text-sm ${
                     m.sender_id === user?.id
                       ? "bg-primary text-primary-foreground"
                       : "liquid-glass text-foreground relative z-10"
@@ -304,7 +303,7 @@ const MessagesPage = () => {
                   onChange={(e) => setMsg(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && sendMessage()}
                   placeholder="Message..."
-                  className="flex-1 px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none"
+                  className="flex-1 min-w-0 px-4 py-3 rounded-2xl bg-secondary/50 text-foreground text-sm placeholder:text-muted-foreground outline-none"
                 />
                 <button onClick={sendMessage} className="depth-press w-11 h-11 rounded-2xl bg-primary flex items-center justify-center">
                   <Send className="w-4 h-4 text-primary-foreground" />
@@ -355,8 +354,10 @@ const MessagesPage = () => {
             </div>
             <div className="flex-1 min-w-0">
               <span className="text-sm font-semibold text-foreground">{conv.display_name || conv.username || "User"}</span>
-              <p className="text-sm text-muted-foreground truncate">@{conv.username || "user"}</p>
+              <p className="text-sm text-muted-foreground truncate">{conv.lastMsg || `@${conv.username || "user"}`}</p>
+              {onlineIds.includes(conv.user_id) && <span className="text-xs text-primary">Online</span>}
             </div>
+            {!!conv.unread && <span className="bg-primary text-primary-foreground rounded-full px-2 py-1 text-xs">{conv.unread}</span>}
           </motion.button>
         ))}
       </div>

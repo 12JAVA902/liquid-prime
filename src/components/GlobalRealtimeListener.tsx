@@ -8,6 +8,7 @@ import { playNotificationTone } from "@/hooks/useRingtone";
 import { logSecurityEvent } from "@/utils/audit";
 
 interface Ring {
+  id: string;
   callerId: string;
   callerName: string;
   audio?: boolean;
@@ -26,18 +27,31 @@ const GlobalRealtimeListener = () => {
   useEffect(() => {
     if (!user) return;
 
+    const showRing = async (row: { id: string; caller_id: string; audio: boolean; status: string; created_at: string }) => {
+      if (row.status !== "ringing" || Date.now() - Date.parse(row.created_at) > 45000) return;
+      const { data } = await supabase.from("profiles").select("display_name, username").eq("user_id", row.caller_id).maybeSingle();
+      const name = data?.display_name || data?.username || "Member";
+      setRing({ id: row.id, callerId: row.caller_id, callerName: name, audio: row.audio });
+      if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+        new Notification("Incoming Primegram call", { body: name, icon: "/favicon.png", tag: row.id });
+      }
+    };
     const calls = supabase
-      .channel(`calls-${user.id}`)
-      .on("broadcast", { event: "ring" }, ({ payload }: any) => {
-        if (!payload?.callerId) return;
-        void logSecurityEvent("realtime", "call_ring_received", payload.callerId, { audio: !!payload.audio });
-        setRing({ callerId: payload.callerId, callerName: payload.callerName || "Unknown", audio: payload.audio });
-      })
-      .on("broadcast", { event: "ring-cancel" }, () => {
-        void logSecurityEvent("realtime", "call_ring_cancelled");
-        setRing(null);
+      .channel(`call-invitations-${user.id}`)
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "call_invitations", filter: `receiver_id=eq.${user.id}` }, ({ new: row }) => { void showRing(row as any); })
+      .on("postgres_changes", { event: "UPDATE", schema: "public", table: "call_invitations", filter: `receiver_id=eq.${user.id}` }, ({ new: row }) => {
+        if (row.status !== "ringing") setRing(current => current?.id === row.id ? null : current);
       })
       .subscribe();
+
+    const refreshRings = async () => {
+      const { data } = await supabase.from("call_invitations").select("*").eq("receiver_id", user.id).eq("status", "ringing")
+        .gte("created_at", new Date(Date.now() - 45000).toISOString()).order("created_at", { ascending: false }).limit(1);
+      if (data?.[0]) void showRing(data[0]);
+      else setRing(null);
+    };
+    void refreshRings();
+    const ringPoll = setInterval(refreshRings, 5000);
 
     const inbox = supabase
       .channel(`inbox-${user.id}`)
@@ -53,6 +67,10 @@ const GlobalRealtimeListener = () => {
             .eq("user_id", row.sender_id)
             .maybeSingle();
           const name = data?.display_name || data?.username || "New message";
+          if (document.hidden && "Notification" in window && Notification.permission === "granted") {
+            const notice = new Notification(name, { body: "New message on Primegram", icon: "/favicon.png" });
+            notice.onclick = () => { window.focus(); navigate("/messages"); notice.close(); };
+          }
           toast(name, {
             description: String(row.content ?? "").slice(0, 120),
             action: { label: "Open", onClick: () => navigate("/messages") },
@@ -62,6 +80,7 @@ const GlobalRealtimeListener = () => {
       .subscribe();
 
     return () => {
+      clearInterval(ringPoll);
       supabase.removeChannel(calls);
       supabase.removeChannel(inbox);
     };
@@ -74,11 +93,7 @@ const GlobalRealtimeListener = () => {
   const decline = () => {
     if (ring && user) {
       void logSecurityEvent("realtime", "call_declined", ring.callerId);
-      supabase.channel(`calls-${ring.callerId}`).send({
-        type: "broadcast",
-        event: "hangup",
-        payload: { from: user.id },
-      });
+      void supabase.from("call_invitations").update({ status: "declined" }).eq("id", ring.id);
     }
     setRing(null);
   };
@@ -89,7 +104,8 @@ const GlobalRealtimeListener = () => {
       callerName={ring?.callerName || ""}
       onJoin={() => {
         if (!ring) return;
-        const target = `/call/${ring.callerId}?incoming=1${ring.audio ? "&audio=1" : ""}`;
+        void supabase.from("call_invitations").update({ status: "accepted" }).eq("id", ring.id);
+        const target = `/call/${ring.callerId}?incoming=1&call=${ring.id}${ring.audio ? "&audio=1" : ""}`;
         setRing(null);
         navigate(target);
       }}

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Sparkles, Layers, Music, Trophy, Gamepad2, Film, X } from "lucide-react";
+import { Sparkles, Layers, Music, Trophy, Gamepad2, Film, X, Video } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import OnlineCalls from "./OnlineCalls";
 import { useNavigate } from "react-router-dom";
 import PrimeMusicHub from "./PrimeMusicHub";
 
@@ -68,6 +70,7 @@ const PrimeHubPanel = ({ open, onClose }: { open: boolean; onClose: () => void }
 };
 
 const FloatingActions = () => {
+  const [callsOpen, setCallsOpen] = useState(false);
   const [aiOpen, setAiOpen] = useState(false);
   const [hubOpen, setHubOpen] = useState(false);
   const [PrimeAI, setPrimeAI] = useState<React.ComponentType<any> | null>(null);
@@ -84,6 +87,9 @@ const FloatingActions = () => {
   return (
     <>
       <div className="fixed right-4 bottom-24 z-[55] flex flex-col gap-3">
+        <Button variant="outline" size="icon" aria-label="1-on-1 online calls" title="1-on-1 online calls" onClick={() => setCallsOpen(true)} className="depth-press w-12 h-12 rounded-xl liquid-glass-elevated relative">
+          <Video className="text-primary" /><span className="absolute -top-1 -right-1 rounded-full bg-primary text-primary-foreground w-5 h-5 text-xs flex items-center justify-center">1</span>
+        </Button>
         <motion.button
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.92 }}
@@ -104,6 +110,7 @@ const FloatingActions = () => {
       </div>
 
       <PrimeHubPanel open={hubOpen} onClose={() => setHubOpen(false)} />
+      <OnlineCalls open={callsOpen} onClose={() => setCallsOpen(false)} />
       {PrimeAI && <PrimeAI open={aiOpen} onClose={() => setAiOpen(false)} />}
     </>
   );
